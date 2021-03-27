@@ -134,7 +134,7 @@ func (c Con) Min() int  { return c.Size }
 func (c Con) Max() int  { return c.Size }
 func (c Con) Hint() int { return c.Size }
 
-// Con implements Sizer for the FIX fields with variable length.
+// Var implements Sizer for the FIX fields with variable length.
 type Var struct {
 	MinSize int
 	MaxSize int
