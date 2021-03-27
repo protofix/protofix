@@ -118,7 +118,7 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 			continue
 		}
 
-		if codec == nil || codec.Varyer() == nil {
+		if codec == nil || codec.Sizer() == nil {
 			if val.Interface() == nil {
 				continue
 			}
@@ -149,7 +149,7 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 
 	enc9 := marsh.Format.BodyLength9
 
-	if enc9.Crypt == nil || enc9.Var == nil {
+	if enc9.Crypt == nil || enc9.Size == nil {
 		err := fmt.Errorf(
 			"missing codec of the mandatory field tag %d: %q",
 			f0.BodyLength9, f0.FldText[f0.BodyLength9],
@@ -176,7 +176,7 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 
 	enc10 := marsh.Format.Checksum10
 
-	if enc10.Crypt == nil || enc10.Var == nil {
+	if enc10.Crypt == nil || enc10.Size == nil {
 		err := fmt.Errorf(
 			"missing codec of the mandatory field tag %d: %q",
 			f0.Checksum10, f0.FldText[f0.Checksum10],

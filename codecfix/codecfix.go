@@ -18,7 +18,7 @@ type Codec interface {
 	Encode(rvalue reflect.Value) (encoded []byte, err error)
 	Decode(rvalue reflect.Value, encoded []byte) (err error)
 	Required() bool
-	Varyer() Varyer
+	Sizer() Sizer
 }
 
 // Fld is a field codec.
@@ -26,12 +26,12 @@ type Fld struct {
 	Require bool // Required or optional.
 	Crypt   Cryptor
 	Serial  Serializer
-	Var     Varyer
+	Size    Sizer
 }
 
 func (f Fld) Encode(rval reflect.Value) ([]byte, error)   { return encode(f, rval) }
 func (f Fld) Decode(rval reflect.Value, enc []byte) error { return decode(f, rval, enc) }
-func (f Fld) Varyer() Varyer                              { return f.Var }
+func (f Fld) Sizer() Sizer                                { return f.Size }
 func (f Fld) Required() bool                              { return f.Require }
 
 func (f Fld) Cryptor() Cryptor       { return f.Crypt }
@@ -41,13 +41,13 @@ func (f Fld) Serializer() Serializer { return f.Serial }
 type BodyLengthFld struct {
 	Crypt  Cryptor
 	Serial BodyLengthSrlz
-	Var    Varyer
+	Size   Sizer
 }
 
 func (f BodyLengthFld) Encode(rval reflect.Value) ([]byte, error)   { return encode(f, rval) }
 func (f BodyLengthFld) Decode(rval reflect.Value, enc []byte) error { return decode(f, rval, enc) }
 func (f BodyLengthFld) Required() bool                              { return true }
-func (f BodyLengthFld) Varyer() Varyer                              { return f.Var }
+func (f BodyLengthFld) Sizer() Sizer                                { return f.Size }
 
 func (f BodyLengthFld) Cryptor() Cryptor       { return f.Crypt }
 func (f BodyLengthFld) Serializer() Serializer { return f.Serial }
@@ -56,13 +56,13 @@ func (f BodyLengthFld) Serializer() Serializer { return f.Serial }
 type ChecksumStringFld struct {
 	Crypt  Cryptor
 	Serial ChecksumStringSrlz
-	Var    Varyer
+	Size   Sizer
 }
 
 func (f ChecksumStringFld) Encode(rval reflect.Value) ([]byte, error)   { return encode(f, rval) }
 func (f ChecksumStringFld) Decode(rval reflect.Value, enc []byte) error { return decode(f, rval, enc) }
 func (f ChecksumStringFld) Required() bool                              { return true }
-func (f ChecksumStringFld) Varyer() Varyer                              { return f.Var }
+func (f ChecksumStringFld) Sizer() Sizer                                { return f.Size }
 
 func (f ChecksumStringFld) Cryptor() Cryptor       { return f.Crypt }
 func (f ChecksumStringFld) Serializer() Serializer { return f.Serial }
@@ -71,13 +71,13 @@ func (f ChecksumStringFld) Serializer() Serializer { return f.Serial }
 type UnknownFld struct {
 	Crypt  Cryptor
 	Serial Serializer
-	Var    Varyer
+	Size   Sizer
 }
 
 func (f UnknownFld) Encode(rval reflect.Value) ([]byte, error)   { return encode(f, rval) }
 func (f UnknownFld) Decode(rval reflect.Value, enc []byte) error { return decode(f, rval, enc) }
 func (f UnknownFld) Required() bool                              { return false }
-func (f UnknownFld) Varyer() Varyer                              { return f.Var }
+func (f UnknownFld) Sizer() Sizer                                { return f.Size }
 
 func (f UnknownFld) Cryptor() Cryptor       { return f.Crypt }
 func (f UnknownFld) Serializer() Serializer { return f.Serial }
@@ -85,7 +85,7 @@ func (f UnknownFld) Serializer() Serializer { return f.Serial }
 type fielder interface {
 	Cryptor() Cryptor
 	Serializer() Serializer
-	Varyer() Varyer
+	Sizer() Sizer
 }
 
 func encode(codec fielder, rval reflect.Value) ([]byte, error) {
@@ -116,7 +116,7 @@ func decode(codec fielder, rval reflect.Value, enc []byte) error {
 	return err
 }
 
-type Varyer interface {
+type Sizer interface {
 	// Min is a minimum length of a value of a FIX field.
 	Min() int
 	// Max is a maximum length of a value of a FIX field.
@@ -125,24 +125,24 @@ type Varyer interface {
 	Hint() int
 }
 
-// Con implements Varyer for the FIX fields with constant length.
+// Con implements Sizer for the FIX fields with constant length.
 type Con struct {
-	Len int
+	Size int
 }
 
-func (c Con) Min() int  { return c.Len }
-func (c Con) Max() int  { return c.Len }
-func (c Con) Hint() int { return c.Len }
+func (c Con) Min() int  { return c.Size }
+func (c Con) Max() int  { return c.Size }
+func (c Con) Hint() int { return c.Size }
 
-// Con implements Varyer for the FIX fields with variable length.
+// Con implements Sizer for the FIX fields with variable length.
 type Var struct {
-	MinLen int
-	MaxLen int
+	MinSize int
+	MaxSize int
 }
 
-func (c Var) Min() int  { return c.MinLen }
-func (c Var) Max() int  { return c.MaxLen }
-func (c Var) Hint() int { return c.MinLen }
+func (c Var) Min() int  { return c.MinSize }
+func (c Var) Max() int  { return c.MaxSize }
+func (c Var) Hint() int { return c.MinSize }
 
 const (
 	MaxBytes  = 65536

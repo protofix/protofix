@@ -117,7 +117,7 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 			codec = scan.Format.Checksum10
 		}
 
-		if codec == nil || codec.Varyer() == nil {
+		if codec == nil || codec.Sizer() == nil {
 			if unknown == nil {
 				unknown = map[int][]byte{}
 			}

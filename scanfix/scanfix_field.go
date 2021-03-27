@@ -56,7 +56,7 @@ func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, e
 
 	// Head 9.
 	case f0.BodyLength9:
-		if scan.Format.BodyLength9.Var != nil {
+		if scan.Format.BodyLength9.Size != nil {
 			codec = scan.Format.BodyLength9
 		}
 
@@ -66,7 +66,7 @@ func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, e
 
 	// Trail 10.
 	case f0.Checksum10:
-		if scan.Format.Checksum10.Var != nil {
+		if scan.Format.Checksum10.Size != nil {
 			codec = scan.Format.Checksum10
 		}
 	}
@@ -76,15 +76,15 @@ func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, e
 	}
 
 	l := len(data) - scan.equal - 2
-	if l > codec.Varyer().Max() {
+	if l > codec.Sizer().Max() {
 		err := fmt.Errorf(
 			"unexpected value length %d of the tag %d %q, maximum value length %d, field length %d, field: %q",
-			l, scan.Tag, f0.FldText[scan.Tag], codec.Varyer().Max(), len(data), data,
+			l, scan.Tag, f0.FldText[scan.Tag], codec.Sizer().Max(), len(data), data,
 		)
 		return 0, nil, 0, nil, err
 	}
 
-	if hint := codec.Varyer().Min() + scan.equal + 2 - len(data); hint > 0 {
+	if hint := codec.Sizer().Min() + scan.equal + 2 - len(data); hint > 0 {
 		return hint, nil, 0, nil, nil
 	}
 

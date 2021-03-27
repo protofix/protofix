@@ -11,13 +11,13 @@ found in the [LICENSE](./LICENSE) file.
 About
 -----
 
-The software is considered to be at a alpha level of readiness -
+The software is considered to be at an alpha level of readiness -
 its incomplete and extremely slow and allocates a lots of memory)
 
 Install
 -------
 
-    go get github.com/danil/protofix@v0.0.39
+    go get github.com/danil/protofix@v0.0.41
 
 Usage
 -----
