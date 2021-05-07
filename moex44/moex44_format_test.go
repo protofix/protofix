@@ -34,7 +34,7 @@ var UnmarshalTestCases = []struct {
 		line:        line(),
 		name:        "readme example",
 		unmarshaler: moex44.MOEX44LogonUnmarshaler,
-		input:       "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		input:       "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 		expected: moex44Logon{
 			BeginString8:    "FIX.4.4",
 			BodyLength9:     103,
@@ -46,14 +46,14 @@ var UnmarshalTestCases = []struct {
 			EncryptMethod98: 0,
 			HeartBtInt108:   42 * time.Second,
 			Password554:     "87654321",
-			Checksum10:      "060",
+			CheckSum10:      "060",
 		},
 	},
 	{
 		line:        line(),
 		name:        "many fields",
 		unmarshaler: moex44.MOEX44LogonUnmarshaler,
-		input:       "8=FIX.4.4|9=162|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-15:25:21.000000123|97=N|98=0|108=42|122=20210312-12:35:12.000000000|141=Y|554=87654321|925=87654321|1409=3|6867=A|6936=R|10=166|",
+		input:       "8=FIX.4.4|9=162|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-15:25:21.000000123|98=0|108=42|122=20210312-12:35:12.000000000|141=Y|554=87654321|925=87654321|1409=3|6867=A|6936=R|10=166|",
 		expected: moex44Logon{
 			BeginString8:           "FIX.4.4",
 			BodyLength9:            162,
@@ -73,14 +73,14 @@ var UnmarshalTestCases = []struct {
 			SessionStatus1409:      3,
 			CancelOnDisconnect6867: "A",
 			LanguageID6936:         "R",
-			Checksum10:             "166",
+			CheckSum10:             "166",
 		},
 	},
 	{
 		line:        line(),
 		name:        `invalid 108/"heart beat interval" tag value (more than 60 seconds)`,
 		unmarshaler: moex44.MOEX44LogonUnmarshaler,
-		input:       "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=100500|141=N|554=87654321|1409=0|10=060|",
+		input:       "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|97=N|52=20210312-12:35:12.000000000|56=Bar|98=0|108=100500|141=N|554=87654321|1409=0|10=060|",
 		expected: moex44Logon{
 			BeginString8:    "FIX.4.4",
 			BodyLength9:     103,
@@ -92,10 +92,10 @@ var UnmarshalTestCases = []struct {
 			EncryptMethod98: 0,
 			HeartBtInt108:   100500 * time.Second,
 			Password554:     "87654321",
-			Checksum10:      "060",
+			CheckSum10:      "060",
 		},
 		expectedWarns: []error{
-			errors.New(`FIX unmarshal: decode field tag 108: "HeartBtInt": unexpected value "27h55m0s", allow: [1s 2s 3s 4s 5s 6s 7s 8s 9s 10s 11s 12s 13s 14s 15s 16s 17s 18s 19s 20s 21s 22s 23s 24s 25s 26s 27s 28s 29s 30s 31s 32s 33s 34s 35s 36s 37s 38s 39s 40s 41s 42s 43s 44s 45s 46s 47s 48s 49s 50s 51s 52s 53s 54s 55s 56s 57s 58s 59s 1m0s]`),
+			errors.New(`FIX unmarshal: decode field tag 108 "HeartBtInt": unexpected value "27h55m0s", allow: [1s 2s 3s 4s 5s 6s 7s 8s 9s 10s 11s 12s 13s 14s 15s 16s 17s 18s 19s 20s 21s 22s 23s 24s 25s 26s 27s 28s 29s 30s 31s 32s 33s 34s 35s 36s 37s 38s 39s 40s 41s 42s 43s 44s 45s 46s 47s 48s 49s 50s 51s 52s 53s 54s 55s 56s 57s 58s 59s 1m0s]`),
 		},
 	},
 	{
@@ -103,15 +103,15 @@ var UnmarshalTestCases = []struct {
 		name: `missing codec of the field tag 35/"message type"`,
 		unmarshaler: func() marshfix.Unmarshal {
 			head := map[int]f0.Codec{}
-			for k, v := range moex44.MOEX44LogonUnmarshaler.Format.Head {
+			for k, v := range moex44.MOEX44LogonUnmarshaler.Format.Fields {
 				head[k] = v
 			}
 			delete(head, f0.MsgType35)
 			marsh := moex44.MOEX44LogonUnmarshaler
-			marsh.Format.Head = head
+			marsh.Format.Fields = head
 			return marsh
 		}(),
-		input: "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		input: "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|97=N|52=20210312-12:35:12.000000000|56=Bar|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 		expected: moex44Logon{
 			BeginString8:    "FIX.4.4",
 			BodyLength9:     103,
@@ -122,12 +122,12 @@ var UnmarshalTestCases = []struct {
 			EncryptMethod98: 0,
 			HeartBtInt108:   42 * time.Second,
 			Password554:     "87654321",
-			Checksum10:      "060",
+			CheckSum10:      "060",
 		},
 		expectedUnknown: map[int][]byte{f0.MsgType35: []byte("A")},
 		expectedWarns: []error{
-			errors.New(`FIX unmarshal: missing codec of the field tag 35: "MsgType"`),
-			errors.New(`FIX unmarshal: decode field tag 35: "MsgType": cannot deserialize unknown value`),
+			errors.New(`FIX unmarshal: missing codec of the field tag 35 "MsgType"`),
+			errors.New(`FIX unmarshal: decode field tag 35 "MsgType": cannot deserialize unknown value`),
 		},
 	},
 	{
@@ -138,7 +138,7 @@ var UnmarshalTestCases = []struct {
 			marsh.Format.BodyLength9 = f0.BodyLengthFld{}
 			return marsh
 		}(),
-		input: "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		input: "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|97=N|52=20210312-12:35:12.000000000|56=Bar|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 		expected: moex44Logon{
 			BeginString8:    "FIX.4.4",
 			MsgType35:       "A",
@@ -149,12 +149,12 @@ var UnmarshalTestCases = []struct {
 			EncryptMethod98: 0,
 			HeartBtInt108:   42 * time.Second,
 			Password554:     "87654321",
-			Checksum10:      "060",
+			CheckSum10:      "060",
 		},
 		expectedUnknown: map[int][]byte{f0.BodyLength9: []byte("103")},
 		expectedWarns: []error{
-			errors.New(`FIX unmarshal: missing codec of the field tag 9: "BodyLength"`),
-			errors.New(`FIX unmarshal: decode field tag 9: "BodyLength": cannot deserialize unknown value`),
+			errors.New(`FIX unmarshal: missing codec of the field tag 9 "BodyLength"`),
+			errors.New(`FIX unmarshal: decode field tag 9 "BodyLength": cannot deserialize unknown value`),
 		},
 	},
 	{
@@ -162,10 +162,10 @@ var UnmarshalTestCases = []struct {
 		name: "missing codec of the field tag 10/checksum",
 		unmarshaler: func() marshfix.Unmarshal {
 			marsh := moex44.MOEX44LogonUnmarshaler
-			marsh.Format.Checksum10 = f0.ChecksumStringFld{}
+			marsh.Format.CheckSum10 = f0.ChecksumStringFld{}
 			return marsh
 		}(),
-		input: "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		input: "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|97=N|52=20210312-12:35:12.000000000|56=Bar|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 		expected: moex44Logon{
 			BeginString8:    "FIX.4.4",
 			BodyLength9:     103,
@@ -178,10 +178,10 @@ var UnmarshalTestCases = []struct {
 			HeartBtInt108:   42 * time.Second,
 			Password554:     "87654321",
 		},
-		expectedUnknown: map[int][]byte{f0.Checksum10: []byte("060")},
+		expectedUnknown: map[int][]byte{f0.CheckSum10: []byte("060")},
 		expectedWarns: []error{
-			errors.New(`FIX unmarshal: missing codec of the field tag 10: "Checksum"`),
-			errors.New(`FIX unmarshal: decode field tag 10: "Checksum": cannot deserialize unknown value`),
+			errors.New(`FIX unmarshal: missing codec of the field tag 10 "Checksum"`),
+			errors.New(`FIX unmarshal: decode field tag 10 "Checksum": cannot deserialize unknown value`),
 		},
 	},
 	{
@@ -192,8 +192,8 @@ var UnmarshalTestCases = []struct {
 			marsh.Tag = ""
 			return marsh
 		}(),
-		input:         "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=100500|141=N|554=87654321|1409=0|10=060|",
-		expectedError: errors.New(`FIX unmarshal: missing tag of the unmarshal, struct: &{BeginString8: BodyLength9:0 MsgType35: SenderCompID49: TargetCompID56: MsgSeqNum34:0 PossDupFlag43:false PossResend97:false SendingTime52:0001-01-01 00:00:00 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:0s ResetSeqNumFlag141:false Password554: NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: Checksum10:}`),
+		input:         "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|97=N|52=20210312-12:35:12.000000000|56=Bar|98=0|108=100500|141=N|554=87654321|1409=0|10=060|",
+		expectedError: errors.New(`FIX unmarshal: missing tag of the unmarshal, struct: &{BeginString8: BodyLength9:0 MsgType35: SenderCompID49: TargetCompID56: MsgSeqNum34:0 PossDupFlag43:false PossResend97:false SendingTime52:0001-01-01 00:00:00 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:0s ResetSeqNumFlag141:false Password554: NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: CheckSum10:}`),
 	},
 	{
 		line: line(),
@@ -203,8 +203,8 @@ var UnmarshalTestCases = []struct {
 			marsh.Format = f0.Format{}
 			return marsh
 		}(),
-		input:         "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=100500|141=N|554=87654321|1409=0|10=060|",
-		expectedError: errors.New(`FIX unmarshal: unmarshaler format validation: missing header, missing body, struct: &{BeginString8: BodyLength9:0 MsgType35: SenderCompID49: TargetCompID56: MsgSeqNum34:0 PossDupFlag43:false PossResend97:false SendingTime52:0001-01-01 00:00:00 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:0s ResetSeqNumFlag141:false Password554: NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: Checksum10:}`),
+		input:         "8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|97=N|52=20210312-12:35:12.000000000|56=Bar|98=0|108=100500|141=N|554=87654321|1409=0|10=060|",
+		expectedError: errors.New(`FIX unmarshal: unmarshaler format validation: missing fields, missing sorting order, unexpected sorting order length: 0, struct: &{BeginString8: BodyLength9:0 MsgType35: SenderCompID49: TargetCompID56: MsgSeqNum34:0 PossDupFlag43:false PossResend97:false SendingTime52:0001-01-01 00:00:00 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:0s ResetSeqNumFlag141:false Password554: NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: CheckSum10:}`),
 	},
 }
 
@@ -269,7 +269,7 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:   42 * time.Second,
 			Password554:     "87654321",
 		},
-		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 	},
 	{
 		line:      line(),
@@ -293,7 +293,7 @@ var MarshalTestCases = []struct {
 			CancelOnDisconnect6867: "A",
 			LanguageID6936:         "R",
 		},
-		expected:  "8=FIX.4.4|9=162|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-15:25:21.000000123|97=N|98=0|108=42|122=20210312-12:35:12.000000000|141=Y|554=87654321|925=87654321|1409=3|6867=A|6936=R|10=166|",
+		expected:  "8=FIX.4.4|9=162|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-15:25:21.000000123|122=20210312-12:35:12.000000000|98=0|108=42|141=Y|554=87654321|925=87654321|1409=3|6867=A|6936=R|10=166|",
 		benchmark: true,
 	},
 	{
@@ -301,12 +301,12 @@ var MarshalTestCases = []struct {
 		name: `missing codec of the field tag 35/"message type"`,
 		marshaler: func() marshfix.Marshal {
 			head := map[int]f0.Codec{}
-			for k, v := range moex44.MOEX44LogonMarshaler.Format.Head {
+			for k, v := range moex44.MOEX44LogonMarshaler.Format.Fields {
 				head[k] = v
 			}
 			delete(head, f0.MsgType35)
 			marsh := moex44.MOEX44LogonMarshaler
-			marsh.Format.Head = head
+			marsh.Format.Fields = head
 			return marsh
 		}(),
 		input: moex44Logon{
@@ -319,10 +319,10 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:   42 * time.Second,
 			Password554:     "87654321",
 		},
-		expected:        "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		expected:        "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 		expectedUnknown: map[int]interface{}{f0.MsgType35: "A"},
 		expectedWarns: []error{
-			errors.New(`FIX marshal: missing codec of the field tag 35: "MsgType"`),
+			errors.New(`FIX marshal: missing codec of the field tag 35 "MsgType"`),
 		},
 	},
 	{
@@ -338,9 +338,9 @@ var MarshalTestCases = []struct {
 			SendingTime52:  time.Date(2021, time.March, 12, 12, 35, 12, 0, time.UTC),
 			HeartBtInt108:  42 * time.Second,
 			Password554:    "87654321",
-			Checksum10:     "",
+			CheckSum10:     "",
 		},
-		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 	},
 	{
 		line:      line(),
@@ -356,7 +356,7 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:   42 * time.Second,
 			Password554:     "87654321",
 		},
-		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 	},
 	{
 		line:      line(),
@@ -372,7 +372,7 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:  42 * time.Second,
 			Password554:    "87654321",
 		},
-		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
+		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
 	},
 	{
 		line:      line(),
@@ -387,9 +387,9 @@ var MarshalTestCases = []struct {
 			SendingTime52:  time.Date(2021, time.March, 12, 12, 35, 12, 0, time.UTC),
 			HeartBtInt108:  42 * time.Second,
 			Password554:    "87654321",
-			Checksum10:     "666",
+			CheckSum10:     "666",
 		},
-		expected: "8=FIX.4.4|9=1234567890|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|10=666|",
+		expected: "8=FIX.4.4|9=1234567890|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=666|",
 	},
 	{
 		line:      line(),
@@ -404,9 +404,9 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:  100500 * time.Second,
 			Password554:    "87654321",
 		},
-		expected: "8=FIX.4.4|9=107|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=100500|141=N|554=87654321|1409=0|10=000|",
+		expected: "8=FIX.4.4|9=107|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=100500|141=N|554=87654321|1409=0|10=000|",
 		expectedWarns: []error{
-			errors.New(`FIX marshal: encode field tag 108: "HeartBtInt": unexpected value "27h55m0s", allow: [1s 2s 3s 4s 5s 6s 7s 8s 9s 10s 11s 12s 13s 14s 15s 16s 17s 18s 19s 20s 21s 22s 23s 24s 25s 26s 27s 28s 29s 30s 31s 32s 33s 34s 35s 36s 37s 38s 39s 40s 41s 42s 43s 44s 45s 46s 47s 48s 49s 50s 51s 52s 53s 54s 55s 56s 57s 58s 59s 1m0s]`),
+			errors.New(`FIX marshal: encode field tag 108 "HeartBtInt": unexpected value "27h55m0s", allow: [1s 2s 3s 4s 5s 6s 7s 8s 9s 10s 11s 12s 13s 14s 15s 16s 17s 18s 19s 20s 21s 22s 23s 24s 25s 26s 27s 28s 29s 30s 31s 32s 33s 34s 35s 36s 37s 38s 39s 40s 41s 42s 43s 44s 45s 46s 47s 48s 49s 50s 51s 52s 53s 54s 55s 56s 57s 58s 59s 1m0s]`),
 		},
 	},
 	{
@@ -426,14 +426,14 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:  42 * time.Second,
 			Password554:    "87654321",
 		},
-		expectedError: errors.New(`FIX marshal: missing codec of the mandatory field tag 9: "BodyLength", struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: Checksum10:}`),
+		expectedError: errors.New(`FIX marshal: missing codec of the mandatory field tag 9 "BodyLength", struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: CheckSum10:}`),
 	},
 	{
 		line: line(),
 		name: "missing 10/checksum codec",
 		marshaler: func() marshfix.Marshal {
 			marsh := moex44.MOEX44LogonMarshaler
-			marsh.Format.Checksum10 = f0.ChecksumStringFld{}
+			marsh.Format.CheckSum10 = f0.ChecksumStringFld{}
 			return marsh
 		}(),
 		input: moex44Logon{
@@ -445,7 +445,7 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:  42 * time.Second,
 			Password554:    "87654321",
 		},
-		expectedError: errors.New(`FIX marshal: missing codec of the mandatory field tag 10: "Checksum", struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: Checksum10:}`),
+		expectedError: errors.New(`FIX marshal: missing codec of the mandatory field tag 10 "Checksum", struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: CheckSum10:}`),
 	},
 	{
 		line: line(),
@@ -464,7 +464,7 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:  42 * time.Second,
 			Password554:    "87654321",
 		},
-		expectedError: errors.New(`FIX marshal: missing tag of the unmarshal, struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: Checksum10:}`),
+		expectedError: errors.New(`FIX marshal: missing tag of the unmarshal, struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: CheckSum10:}`),
 	},
 	{
 		line: line(),
@@ -483,7 +483,7 @@ var MarshalTestCases = []struct {
 			HeartBtInt108:  42 * time.Second,
 			Password554:    "87654321",
 		},
-		expectedError: errors.New(`FIX marshal: marshaler format validation: missing header, missing body, struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: Checksum10:}`),
+		expectedError: errors.New(`FIX marshal: marshaler format validation: missing fields, missing sorting order, unexpected sorting order length: 0, struct: &{BeginString8: BodyLength9:0 MsgType35:A SenderCompID49:Foo TargetCompID56:Bar MsgSeqNum34:1 PossDupFlag43:false PossResend97:false SendingTime52:2021-03-12 12:35:12 +0000 UTC OrigSendingTime122:0001-01-01 00:00:00 +0000 UTC EncryptMethod98:0 HeartBtInt108:42s ResetSeqNumFlag141:false Password554:87654321 NewPassword925: SessionStatus1409:0 CancelOnDisconnect6867: LanguageID6936: CheckSum10:}`),
 	},
 }
 
@@ -557,7 +557,7 @@ type moex44Logon struct {
 	SessionStatus1409      int           `MOEX44:"1409"`
 	CancelOnDisconnect6867 string        `MOEX44:"6867"`
 	LanguageID6936         string        `MOEX44:"6936"`
-	Checksum10             string        `MOEX44:"10"`
+	CheckSum10             string        `MOEX44:"10"`
 }
 
 var MarshalUnknownTestCases = []struct {
@@ -585,11 +585,11 @@ var MarshalUnknownTestCases = []struct {
 			Unknown100500:   "Hello, World!",
 			Unknown100501:   "Hello, Work!",
 		},
-		expected:        "8=FIX.4.4|9=144|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|100500=Hello, World!|100501=Hello, Work!|10=119|",
+		expected:        "8=FIX.4.4|9=144|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|100500=Hello, World!|100501=Hello, Work!|10=119|",
 		expectedUnknown: map[int]interface{}{100500: "Hello, World!", 100501: "Hello, Work!"},
 		expectedWarns: []error{
-			errors.New(`FIX marshal: missing codec of the field tag 100500: ""`),
-			errors.New(`FIX marshal: missing codec of the field tag 100501: ""`),
+			errors.New(`FIX marshal: missing codec of the field tag 100500 ""`),
+			errors.New(`FIX marshal: missing codec of the field tag 100501 ""`),
 		},
 	},
 	{
@@ -607,11 +607,11 @@ var MarshalUnknownTestCases = []struct {
 			Unknown100500:   "Hello, World!",
 			Unknown100501:   "",
 		},
-		expected:        "8=FIX.4.4|9=132|35=A|49=Foo|56=Bar|34=1|43=N|52=20210312-12:35:12.000000000|97=N|98=0|108=42|141=N|554=87654321|1409=0|100500=Hello, World!|100501=|10=112|",
+		expected:        "8=FIX.4.4|9=132|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|100500=Hello, World!|100501=|10=112|",
 		expectedUnknown: map[int]interface{}{100500: "Hello, World!", 100501: ""},
 		expectedWarns: []error{
-			errors.New(`FIX marshal: missing codec of the field tag 100500: ""`),
-			errors.New(`FIX marshal: missing codec of the field tag 100501: ""`),
+			errors.New(`FIX marshal: missing codec of the field tag 100500 ""`),
+			errors.New(`FIX marshal: missing codec of the field tag 100501 ""`),
 		},
 	},
 }
@@ -668,7 +668,7 @@ type logonWithUnknown struct {
 	SessionStatus1409  int           `MOEX44:"1409"`
 	Unknown100500      string        `MOEX44:"100500"`
 	Unknown100501      string        `MOEX44:"100501"`
-	Checksum10         string        `MOEX44:"10"`
+	CheckSum10         string        `MOEX44:"10"`
 }
 
 func line() int { _, _, l, _ := runtime.Caller(1); return l }

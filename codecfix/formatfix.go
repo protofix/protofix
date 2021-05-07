@@ -6,26 +6,85 @@ package codecfix
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
+	"sync"
 )
 
 // Format maps a codes to a each individual field of the FIX.
 type Format struct {
-	Head        map[int]Codec
+	Fields      map[int]Codec
 	BodyLength9 BodyLengthFld
-	Body        map[int]Codec
-	Checksum10  ChecksumStringFld
+	CheckSum10  ChecksumStringFld
 	Unknown     UnknownFld
+	Sort        []int
 }
+
+var sortPool = sync.Pool{New: func() interface{} { m := map[int]struct{}{}; return &m }}
 
 func (f Format) Validate() error {
 	var errs []string
 
-	if f.Head == nil {
-		errs = append(errs, "missing header")
+	if f.Fields == nil {
+		errs = append(errs, "missing fields")
 	}
-	if f.Body == nil {
-		errs = append(errs, "missing body")
+
+	if f.Sort == nil {
+		errs = append(errs, "missing sorting order")
+	}
+
+	if len(f.Sort) < 4 {
+		errs = append(errs, "unexpected sorting order length: "+strconv.Itoa(len(f.Sort)))
+
+	} else {
+		if f.Sort[0] != BeginString8 {
+			err := fmt.Sprintf(
+				"tag in first sorting place, expected: %d %q, received: %d %q",
+				BeginString8, TagText[BeginString8], f.Sort[0], TagText[f.Sort[0]],
+			)
+			errs = append(errs, err)
+		}
+
+		if f.Sort[1] != BodyLength9 {
+			err := fmt.Sprintf(
+				"tag in second sorting place, expected: %d %q, received: %d %q",
+				BodyLength9, TagText[BodyLength9], f.Sort[1], TagText[f.Sort[1]],
+			)
+			errs = append(errs, err)
+		}
+
+		if f.Sort[2] != MsgType35 {
+			err := fmt.Sprintf(
+				"tag in third sorting place, expected: %d %q, received: %d %q",
+				MsgType35, TagText[MsgType35], f.Sort[2], TagText[f.Sort[2]],
+			)
+			errs = append(errs, err)
+		}
+
+		if f.Sort[len(f.Sort)-1] != CheckSum10 {
+			err := fmt.Sprintf(
+				"tag in last sorting place, expected: %d %q, received: %d %q",
+				CheckSum10, TagText[CheckSum10], f.Sort[len(f.Sort)-1], TagText[f.Sort[len(f.Sort)-1]],
+			)
+			errs = append(errs, err)
+		}
+	}
+
+	sortTags := *sortPool.Get().(*map[int]struct{})
+	for tag := range sortTags {
+		delete(sortTags, tag)
+	}
+	defer sortPool.Put(&sortTags)
+
+	for _, tag := range f.Sort {
+		sortTags[tag] = struct{}{}
+	}
+
+	for tag := range f.Fields {
+		if _, ok := sortTags[tag]; !ok {
+			errs = append(errs, fmt.Sprintf("no sorting for tag %d %q", tag, TagText[tag]))
+		}
 	}
 
 	var err error
@@ -38,31 +97,31 @@ func (f Format) Validate() error {
 
 const Req, Opt = true, false
 
-// Field types.
+// Tags.
 const (
 	BeginString8           = 8
 	BodyLength9            = 9
-	MsgType35              = 35
-	SenderCompID49         = 49
-	TargetCompID56         = 56
-	ApplVerID1128          = 1128
+	CheckSum10             = 10
 	MsgSeqNum34            = 34
+	MsgType35              = 35
 	PossDupFlag43          = 43
-	PossResend97           = 97
+	SenderCompID49         = 49
 	SendingTime52          = 52
-	OrigSendingTime122     = 122
+	TargetCompID56         = 56
+	PossResend97           = 97
 	EncryptMethod98        = 98
 	HeartBtInt108          = 108
+	OrigSendingTime122     = 122
 	ResetSeqNumFlag141     = 141
 	Password554            = 554
 	NewPassword925         = 925
+	ApplVerID1128          = 1128
 	SessionStatus1409      = 1409
 	CancelOnDisconnect6867 = 6867
 	LanguageID6936         = 6936
-	Checksum10             = 10
 )
 
-var FldText = map[int]string{
+var TagText = map[int]string{
 	BeginString8:           "BeginString",
 	BodyLength9:            "BodyLength",
 	MsgType35:              "MsgType",
@@ -82,7 +141,7 @@ var FldText = map[int]string{
 	SessionStatus1409:      "SessionStatus",
 	CancelOnDisconnect6867: "CancelOnDisconnect",
 	LanguageID6936:         "LanguageID",
-	Checksum10:             "Checksum",
+	CheckSum10:             "Checksum",
 }
 
 // Message types.

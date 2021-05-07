@@ -50,24 +50,20 @@ func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, e
 	var codec f0.Codec
 
 	switch scan.Tag {
-	// Head.
-	case f0.BeginString8, f0.MsgType35, f0.SenderCompID49, f0.TargetCompID56, f0.ApplVerID1128:
-		codec = scan.Format.Head[scan.Tag]
-
 	// Head 9.
 	case f0.BodyLength9:
 		if scan.Format.BodyLength9.Size != nil {
 			codec = scan.Format.BodyLength9
 		}
 
-	// Body.
+	// Head+Body.
 	default:
-		codec = scan.Format.Body[scan.Tag]
+		codec = scan.Format.Fields[scan.Tag]
 
 	// Trail 10.
-	case f0.Checksum10:
-		if scan.Format.Checksum10.Size != nil {
-			codec = scan.Format.Checksum10
+	case f0.CheckSum10:
+		if scan.Format.CheckSum10.Size != nil {
+			codec = scan.Format.CheckSum10
 		}
 	}
 
@@ -79,7 +75,7 @@ func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, e
 	if l > codec.Sizer().Max() {
 		err := fmt.Errorf(
 			"unexpected value length %d of the tag %d %q, maximum value length %d, field length %d, field: %q",
-			l, scan.Tag, f0.FldText[scan.Tag], codec.Sizer().Max(), len(data), data,
+			l, scan.Tag, f0.TagText[scan.Tag], codec.Sizer().Max(), len(data), data,
 		)
 		return 0, nil, 0, nil, err
 	}

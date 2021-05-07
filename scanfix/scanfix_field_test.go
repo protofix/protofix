@@ -84,22 +84,45 @@ func TestScanField(t *testing.T) {
 }
 
 var format = f0.Format{
-	Head: map[int]f0.Codec{
-		f0.BeginString8:   f0.Fld{Req, f0.ASCII, f0.StringDefault("FIX.4.4"), f0.Con{7}},
-		f0.MsgType35:      f0.Fld{Req, f0.ASCII, f0.StringDefault(), f0.Var{1, 2}},
-		f0.SenderCompID49: f0.Fld{Req, f0.ASCII, f0.String(), f0.Var{1, 12}},
-		f0.TargetCompID56: f0.Fld{Req, f0.ASCII, f0.String(), f0.Var{1, f0.MaxString}},
+	Fields: map[int]f0.Codec{
+		BeginString8:    f0.Fld{Req, f0.ASCII, f0.StringDefault("FIX.4.4"), f0.Con{7}},
+		MsgType35:       f0.Fld{Req, f0.ASCII, f0.StringDefault(), f0.Var{1, 2}},
+		SenderCompID49:  f0.Fld{Req, f0.ASCII, f0.String(), f0.Var{1, 12}},
+		TargetCompID56:  f0.Fld{Req, f0.ASCII, f0.String(), f0.Var{1, f0.MaxString}},
+		MsgSeqNum34:     f0.Fld{Req, f0.ASCII, f0.SeqNum(), f0.Var{1, f0.MaxInt}},
+		SendingTime52:   f0.Fld{Req, f0.ASCII, f0.UTCTimestampNanosecondTime(), f0.Con{27}},
+		EncryptMethod98: f0.Fld{Req, f0.ASCII, f0.IntDefault(0), f0.Con{1}},
+		HeartBtInt108:   f0.Fld{Req, f0.ASCII, f0.SecondsDuration(30 * time.Second), f0.Var{1, f0.MaxInt}},
+		Password554:     f0.Fld{Req, f0.ASCII, f0.String(), f0.Var{1, 8}},
 	},
 	BodyLength9: f0.BodyLengthFld{f0.ASCII, f0.BodyLength(), f0.Var{1, f0.MaxInt}},
-	Body: map[int]f0.Codec{
-		f0.MsgSeqNum34:     f0.Fld{Req, f0.ASCII, f0.SeqNum(), f0.Var{1, f0.MaxInt}},
-		f0.SendingTime52:   f0.Fld{Req, f0.ASCII, f0.UTCTimestampNanosecondTime(), f0.Con{27}},
-		f0.EncryptMethod98: f0.Fld{Req, f0.ASCII, f0.IntDefault(0), f0.Con{1}},
-		f0.HeartBtInt108:   f0.Fld{Req, f0.ASCII, f0.SecondsDuration(30 * time.Second), f0.Var{1, f0.MaxInt}},
-		f0.Password554:     f0.Fld{Req, f0.ASCII, f0.String(), f0.Var{1, 8}},
+	CheckSum10:  f0.ChecksumStringFld{f0.ASCII, f0.ChecksumString(), f0.Con{3}},
+	Unknown:     f0.UnknownFld{f0.ASCII, f0.Unknown(), f0.Var{1, f0.MaxBytes}},
+	Sort: []int{
+		BeginString8,
+		BodyLength9,
+		MsgType35,
+		SenderCompID49,
+		TargetCompID56,
+		MsgSeqNum34,
+		SendingTime52,
+		EncryptMethod98,
+		HeartBtInt108,
+		Password554,
 	},
-	Checksum10: f0.ChecksumStringFld{f0.ASCII, f0.ChecksumString(), f0.Con{3}},
-	Unknown:    f0.UnknownFld{f0.ASCII, f0.Unknown(), f0.Var{1, f0.MaxBytes}},
 }
 
 const Req = true
+
+const (
+	BeginString8    = 8
+	BodyLength9     = 9
+	MsgType35       = 35
+	SenderCompID49  = 49
+	TargetCompID56  = 56
+	MsgSeqNum34     = 34
+	SendingTime52   = 52
+	EncryptMethod98 = 98
+	HeartBtInt108   = 108
+	Password554     = 554
+)

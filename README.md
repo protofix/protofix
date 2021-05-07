@@ -1,26 +1,22 @@
-protofix
-========
+# protofix
 
 [![Build Status](https://cloud.drone.io/api/badges/danil/protofix/status.svg)](https://cloud.drone.io/danil/protofix)
 [![Go Reference](https://pkg.go.dev/badge/github.com/danil/protofix.svg)](https://pkg.go.dev/github.com/danil/protofix)
 
-FIX.4.4 format and FIX protocol codec for Go.  
+FIX protocol codec for Go.  
 Source files are distributed under the BSD-style license
 found in the [LICENSE](./LICENSE) file.
 
-About
------
+## About
 
 The software is considered to be at an alpha level of readiness -
 its incomplete and extremely slow and allocates a lots of memory)
 
-Install
--------
+## Install
 
-    go get github.com/danil/protofix@v0.0.41
+    go get github.com/danil/protofix@v0.0.49
 
-Usage
------
+## Usage
 
 ```go
 package main
@@ -50,7 +46,7 @@ type MOEX44Logon struct {
     SessionStatus1409      int       `MOEX44:"1409"`
     CancelOnDisconnect6867 string    `MOEX44:"6867"`
     LanguageID6936         string    `MOEX44:"6936"`
-    Checksum10             string    `MOEX44:"10"`
+    CheckSum10             string    `MOEX44:"10"`
 }
 
 func main() {
@@ -75,8 +71,7 @@ Output:
 8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=42|141=N|554=12345678|1409=0|10=060|
 ```
 
-Benchmark
----------
+## Benchmark
 
 ```
 go test -bench=. ./...

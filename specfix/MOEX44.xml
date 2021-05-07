@@ -1,0 +1,136 @@
+<fix major='4' type='FIX' servicepack='0' minor='4'>
+ <header>
+  <field name='BeginString' required='Y' />
+  <field name='BodyLength' required='Y' />
+  <field name='MsgType' required='Y' />
+  <field name='SenderCompID' required='Y' />
+  <field name='TargetCompID' required='Y' />
+  <field name='MsgSeqNum' />
+  <field name='PossDupFlag' />
+  <field name='PossResend' />
+  <field name='SendingTime' required='Y' />
+  <field name='OrigSendingTime' />
+ </header>
+ <messages>
+  <message name='Logon' msgcat='admin' msgtype='A'>
+   <field name='EncryptMethod' required='Y' />
+   <field name='HeartBtInt' required='Y' />
+   <field name='ResetSeqNumFlag' />
+   <field name='Password' required='Y' />
+   <field name='NewPassword' />
+   <field name='SessionStatus' />
+   <field name='CancelOnDisconnect' />
+   <field name='LanguageID' />
+  </message>
+ </messages>
+ <trailer>
+  <field name='CheckSum' required='Y' />
+ </trailer>
+ <components>
+ </components>
+ <fields>
+  <field number='8' name='BeginString' type='STRING' length='7' />
+  <field number='9' name='BodyLength' type='LENGTH' minlength='1' maxlength='18' />
+  <field number='10' name='CheckSum' type='STRING' length='3' />
+  <field number='34' name='MsgSeqNum' type='SEQNUM' />
+  <field number='35' name='MsgType' type='STRING' minlength='1' maxlength='2'>
+   <value enum='0' description='HEARTBEAT' />
+   <value enum='5' description='LOGOUT' />
+   <value enum='A' description='LOGON' />
+  </field>
+  <field number='43' name='PossDupFlag' type='BOOLEAN'>
+   <value enum='N' description='NO' />
+   <value enum='Y' description='YES' />
+  </field>
+  <field number='49' name='SenderCompID' type='STRING' />
+  <field number='52' name='SendingTime' type='UTCTIMESTAMP' />
+  <field number='56' name='TargetCompID' type='STRING' />
+  <field number='97' name='PossResend' type='BOOLEAN'>
+   <value enum='N' description='NO' />
+   <value enum='Y' description='YES' />
+  </field>
+  <field number='98' name='EncryptMethod' type='INT'>
+   <value enum='0' description='NONEOTHER' />
+  </field>
+  <field number='108' name='HeartBtInt' type='INT' minlength='1' maxlength='18'>
+   <value enum='1' />
+   <value enum='2' />
+   <value enum='3' />
+   <value enum='4' />
+   <value enum='5' />
+   <value enum='6' />
+   <value enum='7' />
+   <value enum='8' />
+   <value enum='9' />
+   <value enum='10' />
+   <value enum='11' />
+   <value enum='12' />
+   <value enum='13' />
+   <value enum='14' />
+   <value enum='15' />
+   <value enum='16' />
+   <value enum='17' />
+   <value enum='18' />
+   <value enum='19' />
+   <value enum='20' />
+   <value enum='21' />
+   <value enum='22' />
+   <value enum='23' />
+   <value enum='24' />
+   <value enum='25' />
+   <value enum='26' />
+   <value enum='27' />
+   <value enum='28' />
+   <value enum='29' />
+   <value enum='30' />
+   <value enum='31' />
+   <value enum='32' />
+   <value enum='33' />
+   <value enum='34' />
+   <value enum='35' />
+   <value enum='36' />
+   <value enum='37' />
+   <value enum='38' />
+   <value enum='39' />
+   <value enum='40' />
+   <value enum='41' />
+   <value enum='42' />
+   <value enum='43' />
+   <value enum='44' />
+   <value enum='45' />
+   <value enum='46' />
+   <value enum='47' />
+   <value enum='48' />
+   <value enum='49' />
+   <value enum='50' />
+   <value enum='51' />
+   <value enum='52' />
+   <value enum='53' />
+   <value enum='54' />
+   <value enum='55' />
+   <value enum='56' />
+   <value enum='57' />
+   <value enum='58' />
+   <value enum='59' />
+   <value enum='60' />
+  </field>
+  <field number='122' name='OrigSendingTime' type='UTCTIMESTAMP' />
+  <field number='141' name='ResetSeqNumFlag' type='BOOLEAN'>
+   <value enum='N' description='NO' />
+   <value enum='Y' description='YES' />
+  </field>
+  <field number='554' name='Password' type='STRING' />
+  <field number='925' name='NewPassword' type='STRING' />
+  <field number='1409' name='SessionStatus' type='INT' length='1'>
+   <value enum='0' />
+   <value enum='3' />
+  </field>
+  <field number='6867' name='CancelOnDisconnect' type='STRING' length='1'>
+   <value enum='A' />
+  </field>
+  <field number='6936' name='LanguageID' type='STRING' length='1'>
+   <value enum='R' description='RUSSIAN' />
+   <value enum='E' description='ENGLISH' />
+  </field>
+ </fields>
+</fix>

@@ -37,13 +37,12 @@ func (marsh Marshal) Marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 }
 
 var (
-	headNumsPool = sync.Pool{New: func() interface{} { return new([]int) }}
-	bodyNumsPool = sync.Pool{New: func() interface{} { return new([]int) }}
-	tagRawsPool  = sync.Pool{New: func() interface{} { m := map[int][]byte{}; return &m }}
+	tagRawsPool = sync.Pool{New: func() interface{} { m := map[int][]byte{}; return &m }}
+	unkTagsPool = sync.Pool{New: func() interface{} { return new([]int) }}
 )
 
 func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []error, error) {
-	str := reflect.ValueOf(v).Elem()
+	stru := reflect.ValueOf(v).Elem()
 	var unknown map[int]interface{}
 
 	if marsh.Tag == "" {
@@ -55,26 +54,18 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 		return nil, nil, nil, fmt.Errorf("marshaler format validation: %w", err)
 	}
 
-	headNums := *headNumsPool.Get().(*[]int)
-	headNums = headNums[:0]
-	defer headNumsPool.Put(&headNums)
-
-	bodyNums := *bodyNumsPool.Get().(*[]int)
-	bodyNums = bodyNums[:0]
-	defer bodyNumsPool.Put(&bodyNums)
-
 	tagRaws := *tagRawsPool.Get().(*map[int][]byte)
-	for k := range tagRaws {
-		delete(tagRaws, k)
+	for tag := range tagRaws {
+		delete(tagRaws, tag)
 	}
 	defer tagRawsPool.Put(&tagRaws)
 
 	var bodyLen9, chkSum10 reflect.Value
 	var warns []error
 
-	for i := 0; i < str.NumField(); i++ {
-		fldVal := str.Field(i)
-		fldTyp := str.Type().Field(i)
+	for i := 0; i < stru.NumField(); i++ {
+		fldVal := stru.Field(i)
+		fldTyp := stru.Type().Field(i)
 
 		tag := strings.Split(fldTyp.Tag.Get(marsh.Tag), ",")[0] // use split to ignore tag "options" like omitempty, etc.
 		if tag == "" {
@@ -95,24 +86,18 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 		var codec f0.Codec
 
 		switch num {
-		// Head.
-		case f0.BeginString8, f0.MsgType35, f0.SenderCompID49, f0.TargetCompID56, f0.ApplVerID1128:
-			codec = marsh.Format.Head[num]
-			headNums = append(headNums, num)
-
 		// Head 9.
 		case f0.BodyLength9:
 			bodyLen9 = val
 			// Postpone the body length encoding.
 			continue
 
-		// Body.
+		// Head+Body.
 		default:
-			codec = marsh.Format.Body[num]
-			bodyNums = append(bodyNums, num)
+			codec = marsh.Format.Fields[num]
 
 		// Trail 10.
-		case f0.Checksum10:
+		case f0.CheckSum10:
 			chkSum10 = val
 			// Postpone the checksum encoding.
 			continue
@@ -128,7 +113,7 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 			}
 			unknown[num] = val.Interface()
 
-			err = fmt.Errorf("missing codec of the field tag %d: %q", num, f0.FldText[num])
+			err = fmt.Errorf("missing codec of the field tag %d %q", num, f0.TagText[num])
 			warns = append(warns, err)
 
 			codec = marsh.Format.Unknown
@@ -136,7 +121,7 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 
 		raw, err := codec.Encode(val)
 		if err != nil {
-			err = fmt.Errorf("encode field tag %d: %q: %w", num, f0.FldText[num], err)
+			err = fmt.Errorf("encode field tag %d %q: %w", num, f0.TagText[num], err)
 			warns = append(warns, err)
 		}
 
@@ -150,10 +135,7 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 	enc9 := marsh.Format.BodyLength9
 
 	if enc9.Crypt == nil || enc9.Size == nil {
-		err := fmt.Errorf(
-			"missing codec of the mandatory field tag %d: %q",
-			f0.BodyLength9, f0.FldText[f0.BodyLength9],
-		)
+		err := fmt.Errorf("missing codec of the mandatory field tag %d %q", f0.BodyLength9, f0.TagText[f0.BodyLength9])
 		return nil, unknown, warns, err
 
 	} else {
@@ -161,26 +143,19 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 
 		raw, err := enc9.Encode(bodyLen9)
 		if err != nil {
-			err = fmt.Errorf("encode field tag %d: %q: %w", f0.BodyLength9, f0.FldText[f0.BodyLength9], err)
+			err = fmt.Errorf("encode field tag %d %q: %w", f0.BodyLength9, f0.TagText[f0.BodyLength9], err)
 			warns = append(warns, err)
 		}
 
 		if raw != nil {
-			headNums = append(headNums, f0.BodyLength9)
 			tagRaws[f0.BodyLength9] = Concatenate(strconv.Itoa(f0.BodyLength9), raw)
 		}
 	}
 
-	sort.Ints(headNums)
-	sort.Ints(bodyNums)
-
-	enc10 := marsh.Format.Checksum10
+	enc10 := marsh.Format.CheckSum10
 
 	if enc10.Crypt == nil || enc10.Size == nil {
-		err := fmt.Errorf(
-			"missing codec of the mandatory field tag %d: %q",
-			f0.Checksum10, f0.FldText[f0.Checksum10],
-		)
+		err := fmt.Errorf("missing codec of the mandatory field tag %d %q", f0.CheckSum10, f0.TagText[f0.CheckSum10])
 		return nil, unknown, warns, err
 
 	} else {
@@ -188,41 +163,67 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 
 		raw, err := enc10.Encode(chkSum10)
 		if err != nil {
-			err = fmt.Errorf("encode field tag %d: %q: %w", f0.Checksum10, f0.FldText[f0.Checksum10], err)
+			err = fmt.Errorf("encode field tag %d %q: %w", f0.CheckSum10, f0.TagText[f0.CheckSum10], err)
 			warns = append(warns, err)
 		}
 
 		if raw != nil {
-			// The checksum of a FIX message is always the last field in the message.
-			// So appending after sorting.
-			// <https://en.wikipedia.org/wiki/Financial_Information_eXchange#Trailer:_Checksum>.
-			bodyNums = append(bodyNums, f0.Checksum10)
-			tagRaws[f0.Checksum10] = Concatenate(strconv.Itoa(f0.Checksum10), raw)
+			tagRaws[f0.CheckSum10] = Concatenate(strconv.Itoa(f0.CheckSum10), raw)
 		}
 	}
 
-	for k, v := range marsh.Format.Head {
-		if _, ok := tagRaws[k]; !ok && v.Required() {
-			err := fmt.Errorf("missing value of the mandatory header field tag %d: %q", k, f0.FldText[k])
-			warns = append(warns, err)
-		}
-	}
-
-	for k, v := range marsh.Format.Body {
-		if _, ok := tagRaws[k]; !ok && v.Required() {
-			err := fmt.Errorf("missing value of the mandatory body field tag %d: %q", k, f0.FldText[k])
+	for tag, field := range marsh.Format.Fields {
+		if _, ok := tagRaws[tag]; !ok && field.Required() {
+			err := fmt.Errorf("missing value of the mandatory field tag %d %q", tag, f0.TagText[tag])
 			warns = append(warns, err)
 		}
 	}
 
 	var buf bytes.Buffer
 
-	for _, n := range append(headNums, bodyNums...) {
-		n, err := buf.Write(tagRaws[n])
+	// Writing fields with the exception of the checksum field, it is the last field.
+	for _, tag := range marsh.Format.Sort[:len(marsh.Format.Sort)-1] {
+		raw, ok := tagRaws[tag]
+		if !ok {
+			continue
+		}
+
+		_, err := buf.Write(raw)
 		if err != nil {
-			err = fmt.Errorf("write field tag %d: %q: %w", n, f0.FldText[n], err)
+			err = fmt.Errorf("write field tag %d %q: %w", tag, f0.TagText[tag], err)
 			return nil, unknown, warns, err
 		}
+
+		delete(tagRaws, tag)
+	}
+
+	unkTags := *unkTagsPool.Get().(*[]int)
+	unkTags = unkTags[:0]
+	defer unkTagsPool.Put(&unkTags)
+
+	for tag := range tagRaws {
+		if tag == f0.CheckSum10 {
+			continue
+		}
+		unkTags = append(unkTags, tag)
+	}
+
+	sort.Ints(unkTags)
+
+	// Writing remaining unknown fields. We do not write checksum field here.
+	for _, tag := range unkTags {
+		_, err := buf.Write(tagRaws[tag])
+		if err != nil {
+			err = fmt.Errorf("write unknown field tag %d %q: %w", tag, f0.TagText[tag], err)
+			return nil, unknown, warns, err
+		}
+	}
+
+	// Finally writing checksum field.
+	_, err = buf.Write(tagRaws[f0.CheckSum10])
+	if err != nil {
+		err = fmt.Errorf("write field tag %d %q: %w", f0.CheckSum10, f0.TagText[f0.CheckSum10], err)
+		return nil, unknown, warns, err
 	}
 
 	return buf.Bytes(), unknown, warns, nil

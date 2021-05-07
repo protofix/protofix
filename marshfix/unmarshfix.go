@@ -90,7 +90,7 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 			// we cannot unmarshal without destination, so remember it ...
 			unknown[scan.Tag] = scanner.Token()
 
-			err := fmt.Errorf("missing destination for the field tag %d: %q", scan.Tag, f0.FldText[scan.Tag])
+			err := fmt.Errorf("missing destination for the field tag %d %q", scan.Tag, f0.TagText[scan.Tag])
 			warns = append(warns, err)
 
 			// ... and go forth
@@ -100,21 +100,17 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 		var codec f0.Codec
 
 		switch scan.Tag {
-		// Head.
-		case f0.BeginString8, f0.MsgType35, f0.SenderCompID49, f0.TargetCompID56, f0.ApplVerID1128:
-			codec = marsh.Format.Head[scan.Tag]
-
 		// Head 9.
 		case f0.BodyLength9:
 			codec = scan.Format.BodyLength9
 
-		// Body.
+		// Head+Body.
 		default:
-			codec = scan.Format.Body[scan.Tag]
+			codec = scan.Format.Fields[scan.Tag]
 
 		// Trail 10.
-		case f0.Checksum10:
-			codec = scan.Format.Checksum10
+		case f0.CheckSum10:
+			codec = scan.Format.CheckSum10
 		}
 
 		if codec == nil || codec.Sizer() == nil {
@@ -125,7 +121,7 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 			copy(token, scanner.Token())
 			unknown[scan.Tag] = token
 
-			err = fmt.Errorf("missing codec of the field tag %d: %q", scan.Tag, f0.FldText[scan.Tag])
+			err = fmt.Errorf("missing codec of the field tag %d %q", scan.Tag, f0.TagText[scan.Tag])
 			warns = append(warns, err)
 
 			codec = marsh.Format.Unknown
@@ -140,7 +136,7 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 
 		err := codec.Decode(val, scanner.Token())
 		if err != nil {
-			err = fmt.Errorf("decode field tag %d: %q: %w", scan.Tag, f0.FldText[scan.Tag], err)
+			err = fmt.Errorf("decode field tag %d %q: %w", scan.Tag, f0.TagText[scan.Tag], err)
 			warns = append(warns, err)
 		}
 	}
