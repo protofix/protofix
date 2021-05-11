@@ -3,8 +3,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package moex44 provides MOEX.4.4 (FIX.4.4) protocol format.
-package moex44
+// Package testspec provides test FIX protocol format.
+package testspec
 
 const Req, Opt = true, false
 
@@ -28,4 +28,17 @@ const (
 	SessionStatus1409      = 1409 // INT
 	CancelOnDisconnect6867 = 6867 // STRING
 	LanguageID6936         = 6936 // STRING
+	NoMsgTypes384          = 384  // NUMINGROUP
+	NestedPartyID524       = 524  // STRING
+	NoNestedPartyIDs539    = 539  // NUMINGROUP
+	NestedPartySubID545    = 545  // STRING
+	HopCompID628           = 628  // STRING
+	NoHops627              = 627  // NUMINGROUP
+	NoPositions702         = 702  // NUMINGROUP
+	PosType703             = 703  // STRING
+	YieldType235           = 235  // STRING
+	NoNestedPartySubIDs804 = 804  // NUMINGROUP
+	AgreementDesc913       = 913  // STRING
+	NoUnderlyingStips887   = 887  // NUMINGROUP
+	UnderlyingStipType888  = 888  // STRING
 )

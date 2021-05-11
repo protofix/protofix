@@ -145,9 +145,15 @@ func (c Var) Max() int  { return c.MaxSize }
 func (c Var) Hint() int { return c.MinSize }
 
 const (
-	MaxBytes  = 65536
-	MaxInt    = 18
-	MaxString = MaxBytes
+	MinBodyLength, MaxBodyLength                                 = 0, MaxInt
+	MinBool, MaxBool                                             = 0, 1
+	MinBytes, MaxBytes                                           = 0, 65536
+	MinChecksumString, MaxChecksumString                         = 3, 3
+	MinInt, MaxInt                                               = 0, 19
+	MinSecondsDuration, MaxSecondsDuration                       = 0, MaxInt
+	MinString, MaxString                                         = 0, MaxBytes
+	MinUTCTimestampNanosecondTime, MaxUTCTimestampNanosecondTime = 0, MaxInt
+	MinUnknown, MaxUnknown                                       = 0, MaxBytes
 )
 
 type Serializer interface {

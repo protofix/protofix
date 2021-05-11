@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package genfix is a XML specification parser and FIX message format generator.
+// package genfix is a FIX message format generator.
 package genfix
 
 import (
@@ -17,29 +17,28 @@ import (
 	"text/template"
 	"time"
 
+	f0 "github.com/danil/protofix/codecfix"
 	"github.com/danil/protofix/specfix"
 	"github.com/danil/protofix/stringfix"
 )
 
 //go:generate go run main.go
 
-type pkgInf struct {
-	pkg  string
-	desc string
+type Package struct {
+	Name string
+	Info string
+	Spec []byte
 }
 
-var specs = map[pkgInf][]byte{
-	pkgInf{pkg: "moex44", desc: "MOEX.4.4 (FIX.4.4)"}: specfix.MOEX44,
-}
-
-func Generate(dir string) error {
-	for inf, src := range specs {
-		pth := path.Join(dir, inf.pkg)
+// Generate generates a Go FIX codecs by a XML specifications.
+func Generate(dir string, specs []Package) error {
+	for _, pkg := range specs {
+		pth := path.Join(dir, pkg.Name)
 		fmt.Printf("Generating %s ...", pth)
 
-		err := pkgGen{inf: inf, dir: pth}.generate(src)
+		err := packageGen{pkg: pkg, dir: pth}.generate(pkg.Spec)
 		if err != nil {
-			return fmt.Errorf("generate package: %q, directory: %q, %w", inf.pkg, pth, err)
+			return fmt.Errorf("generate package: %q, directory: %q, %w", pkg.Name, pth, err)
 		}
 
 		fmt.Println("ok")
@@ -48,29 +47,38 @@ func Generate(dir string) error {
 	return nil
 }
 
-type pkgGen struct {
-	inf pkgInf
+type packageGen struct {
+	pkg Package
 	dir string
 }
 
-type fldDef struct {
-	Name string
-	Tag  int
-}
-
-type tplMsg struct {
+type fieldDef struct {
+	Number int
 	Name   string
-	Fields []tplFld
+	Type   string
+	MinLen int
+	MaxLen int
 }
 
-type tplFld struct {
+type componentDef struct {
+	Name   string
+	Fields []tplField
+}
+
+type tplMessage struct {
+	Name   string
+	Fields []tplField
+}
+
+type tplField struct {
 	Name     string
 	Required bool
-	Def      fldDef
+	Def      fieldDef
 }
 
-func (g pkgGen) generate(src []byte) error {
-	var spec xmlSpec
+// generate generates a Go FIX codec by a XML specification.
+func (g packageGen) generate(src []byte) error {
+	var spec specfix.Spec
 	r := bytes.NewReader(src)
 	d := xml.NewDecoder(r)
 
@@ -79,40 +87,60 @@ func (g pkgGen) generate(src []byte) error {
 		return fmt.Errorf("xml decoder: decode: %w", err)
 	}
 
-	defs := make([]fldDef, 0, len(spec.Fields))
-	defByName := make(map[string]fldDef, len(spec.Fields))
+	fldDefs := make([]fieldDef, 0, len(spec.FieldDefs))
+	fldDefByName := make(map[string]fieldDef, len(spec.FieldDefs))
 
-	for _, f := range spec.Fields {
-		d := fldDef{Name: f.Name, Tag: f.Number}
-		defs = append(defs, d)
-		defByName[f.Name] = d
+	for _, fld := range spec.FieldDefs {
+		minLen := fld.MinLen
+		maxLen := fld.MaxLen
+		if minLen == 0 && maxLen == 0 {
+			typeLen := typeLengths[tmplTypeByText[fld.Type]]
+			minLen = typeLen.Min
+			maxLen = typeLen.Max
+		}
+
+		fldDef := fieldDef{
+			Number: fld.Number,
+			Name:   fld.Name,
+			Type:   fld.Type,
+			MinLen: minLen,
+			MaxLen: maxLen,
+			// Values []*xmlValue // FIXME: enums
+		}
+		fldDefs = append(fldDefs, fldDef)
+		fldDefByName[fld.Name] = fldDef
+	}
+
+	tmpl, err := template.New("Main").Parse(mainTmpl)
+	if err != nil {
+		return fmt.Errorf("text template parse: %w", err)
 	}
 
 	var b bytes.Buffer
 
-	err = constTmpl.Execute(&b, struct {
+	err = tmpl.ExecuteTemplate(&b, "Main", struct {
 		Package    string
 		FormatDesc string
 		Year       int
-		Fields     []fldDef
+		Fields     []fieldDef
 	}{
-		Package:    g.inf.pkg,
-		FormatDesc: g.inf.desc,
+		Package:    g.pkg.Name,
+		FormatDesc: g.pkg.Info,
 		Year:       time.Now().Year(),
-		Fields:     defs,
+		Fields:     fldDefs,
 	})
 	if err != nil {
 		return fmt.Errorf("text template execute: %w", err)
 	}
 
 	if _, err := os.Stat(g.dir); os.IsNotExist(err) {
-		err = os.Mkdir(g.dir, os.ModeDir|0755)
+		err = os.MkdirAll(g.dir, os.ModeDir|0755)
 		if err != nil {
 			return fmt.Errorf("os: make directory: %w", err)
 		}
 	}
 
-	fname := fmt.Sprintf("%s_format.go", g.inf.pkg)
+	fname := fmt.Sprintf("%s_format.go", g.pkg.Name)
 	pth := path.Join(g.dir, fname)
 	f, err := os.Create(pth)
 	if err != nil {
@@ -130,59 +158,197 @@ func (g pkgGen) generate(src []byte) error {
 		return fmt.Errorf("os file write %q: %w", pth, err)
 	}
 
-	for _, msg := range spec.Messages {
-		m := tplMsg{Name: msg.Name}
-		flds := make([]tplFld, 0, len(msg.Fields))
+	compDefByName := make(map[string]componentDef, len(spec.ComponentDefs))
 
-		for _, fld := range msg.Fields {
-			d, ok := defByName[fld.Name]
-			if !ok {
-				log.Printf("missing field %q definition", fld.Name)
-			}
-			f := tplFld{Name: fld.Name, Required: fld.Required, Def: d}
-			flds = append(flds, f)
+	// Populating the fields of the components until satisfying all
+	// component-to-component references due to the ability
+	// to follow components in an unsorted order.
+	for i, incomplete := 0, true; incomplete; i++ {
+		if i == 1000 {
+			log.Printf("Too many attempts %d to fill in the fields of the components.", i)
+			break
 		}
 
-		m.Fields = flds
+		incomplete = false
+		for _, comp := range spec.ComponentDefs {
+			if _, ok := compDefByName[comp.Name]; ok {
+				continue
+			}
 
-		err = msgGen{msg: m, inf: g.inf, dir: g.dir}.generate(src)
+			flds, ok := flattenComponent(comp, fldDefByName, compDefByName)
+			if !ok {
+				incomplete = true
+				continue
+			}
+
+			compDefByName[comp.Name] = componentDef{Name: comp.Name, Fields: flds}
+		}
+	}
+
+	for _, msg := range spec.Messages {
+		m := messageGen{
+			pkg:           g.pkg,
+			dir:           g.dir,
+			message:       tplMessage{Name: msg.Name},
+			header:        spec.Header,
+			fields:        msg.Fields,
+			components:    msg.Components,
+			groups:        msg.Groups,
+			trailer:       spec.Trailer,
+			fieldDefs:     fldDefByName,
+			componentDefs: compDefByName,
+		}
+		err = m.generate(src)
 		if err != nil {
-			return fmt.Errorf("generate message: %q package: %q, directory: %q, %w", msg.Name, g.inf.pkg, g.dir, err)
+			return fmt.Errorf("generate message: %q package: %q, directory: %q, %w", msg.Name, g.pkg.Name, g.dir, err)
 		}
 	}
 
 	return nil
 }
 
-type msgGen struct {
-	msg tplMsg
-	inf pkgInf
-	dir string
+// flattenComponent transforms the component definition containing nesting to the flat fields.
+func flattenComponent(src specfix.ComponentDef, fldDefs map[string]fieldDef, compDefs map[string]componentDef) ([]tplField, bool) {
+	var flds []tplField
+
+	for _, fld := range src.Fields {
+		fDef, ok := fldDefs[fld.Name]
+		if !ok {
+			return nil, false
+		}
+		f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
+		flds = append(flds, f)
+	}
+
+	for _, comp := range src.Components {
+		cDef, ok := compDefs[comp.Name]
+		if !ok {
+			return nil, false
+		}
+		for _, fld := range cDef.Fields {
+			fDef, ok := fldDefs[fld.Name]
+			if !ok {
+				return nil, false
+			}
+			f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
+			flds = append(flds, f)
+		}
+	}
+
+	for _, grp := range src.Groups {
+		f, ok := flattenGroup(grp, fldDefs, compDefs)
+		if !ok {
+			return nil, false
+		}
+		flds = append(flds, f...)
+	}
+
+	return flds, true
 }
 
-func (g msgGen) generate(src []byte) error {
+// flattenGroup transforms the group containing nesting to the flat fields.
+func flattenGroup(src specfix.Group, fldDefs map[string]fieldDef, compDefs map[string]componentDef) ([]tplField, bool) {
+	var flds []tplField
+
+	for _, fld := range src.Fields {
+		fDef, ok := fldDefs[fld.Name]
+		if !ok {
+			return nil, false
+		}
+		f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
+		flds = append(flds, f)
+	}
+
+	for _, comp := range src.Components {
+		cDef, ok := compDefs[comp.Name]
+		if !ok {
+			return nil, false
+		}
+		for _, fld := range cDef.Fields {
+			fDef, ok := fldDefs[fld.Name]
+			if !ok {
+				return nil, false
+			}
+			f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
+			flds = append(flds, f)
+		}
+	}
+
+	for _, grp := range src.Groups {
+		f, ok := flattenGroup(grp, fldDefs, compDefs)
+		if !ok {
+			return nil, false
+		}
+		flds = append(flds, f...)
+	}
+
+	return flds, true
+}
+
+type messageGen struct {
+	pkg           Package
+	dir           string
+	message       tplMessage
+	header        specfix.Header
+	fields        []specfix.Field
+	components    []specfix.Component
+	groups        []specfix.Group
+	trailer       []specfix.Field
+	fieldDefs     map[string]fieldDef
+	componentDefs map[string]componentDef
+}
+
+// generate generates a messages for the Go FIX codec by the XML specification.
+func (g messageGen) generate(src []byte) error {
+	// Transform a fields/components/groups specs to a fields.
+	var flds []tplField
+	xfmr := xfmrSpec{fieldDefs: g.fieldDefs, componentDefs: g.componentDefs}
+	flds = append(flds, xfmr.fields(g.header.Fields...)...)
+	flds = append(flds, xfmr.components(g.header.Components...)...)
+	flds = append(flds, xfmr.groups(g.header.Groups...)...)
+	flds = append(flds, xfmr.fields(g.fields...)...)
+	flds = append(flds, xfmr.components(g.components...)...)
+	flds = append(flds, xfmr.fields(g.trailer...)...)
+
+	g.message.Fields = flds
+
+	tmpl, err := template.New("Message").Parse(messageTmpl)
+	if err != nil {
+		return fmt.Errorf("text template parse: %w", err)
+	}
+
+	defs := make([]tplField, 0, len(g.message.Fields))
+	for _, f := range g.message.Fields {
+		if f.Def.Number == f0.BodyLength9 || f.Def.Number == f0.CheckSum10 {
+			continue
+		}
+		defs = append(defs, f)
+	}
+
 	var b bytes.Buffer
 
-	err := msgTmpl.Execute(&b, struct {
-		Package    string
-		Format     string
-		FormatDesc string
-		Year       int
-		Message    string
-		Fields     []tplFld
+	err = tmpl.ExecuteTemplate(&b, "Message", struct {
+		Package     string
+		Format      string
+		FormatDesc  string
+		Year        int
+		Message     string
+		Definitions []tplField
+		Sort        []tplField
 	}{
-		Package:    g.inf.pkg,
-		Format:     strings.ToUpper(g.inf.pkg),
-		FormatDesc: g.inf.desc,
-		Year:       time.Now().Year(),
-		Message:    g.msg.Name,
-		Fields:     g.msg.Fields,
+		Package:     g.pkg.Name,
+		Format:      strings.ToUpper(g.pkg.Name),
+		FormatDesc:  g.pkg.Info,
+		Year:        time.Now().Year(),
+		Message:     g.message.Name,
+		Definitions: defs,
+		Sort:        g.message.Fields,
 	})
 	if err != nil {
 		return fmt.Errorf("text template execute: %w", err)
 	}
 
-	fname := fmt.Sprintf("%s_%s_format.go", g.inf.pkg, stringfix.ToSnakeCase(g.msg.Name))
+	fname := fmt.Sprintf("%s_%s_format.go", g.pkg.Name, stringfix.ToSnakeCase(g.message.Name))
 	pth := path.Join(g.dir, fname)
 	f, err := os.Create(pth)
 	if err != nil {
@@ -202,7 +368,60 @@ func (g msgGen) generate(src []byte) error {
 	return nil
 }
 
-var constTmpl = template.Must(template.New("").Parse(`// Code generated by protofix; DO NOT EDIT.
+// xfmrSpec transforms XML fields/components/groups to template fields.
+type xfmrSpec struct {
+	fieldDefs     map[string]fieldDef
+	componentDefs map[string]componentDef
+}
+
+// fields transforms xml fields to template fields.
+func (xfmr xfmrSpec) fields(src ...specfix.Field) []tplField {
+	var flds []tplField
+
+	for _, fld := range src {
+		fDef, ok := xfmr.fieldDefs[fld.Name]
+		if !ok {
+			log.Printf("Missing field %q specification/definition.", fld.Name)
+		}
+
+		f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
+		flds = append(flds, f)
+	}
+
+	return flds
+}
+
+// components transforms xml components to template fields.
+func (xfmr xfmrSpec) components(src ...specfix.Component) []tplField {
+	var flds []tplField
+
+	for _, comp := range src {
+		cDef, ok := xfmr.componentDefs[comp.Name]
+		if !ok {
+			log.Printf("Missing component %q specification/definition.", comp.Name)
+			continue
+		}
+		flds = append(flds, cDef.Fields...)
+	}
+
+	return flds
+}
+
+// groups transforms xml groups to template fields.
+func (xfmr xfmrSpec) groups(src ...specfix.Group) []tplField {
+	var flds []tplField
+
+	for _, group := range src {
+		flds = append(flds, xfmr.fields(group.Fields...)...)
+		flds = append(flds, xfmr.components(group.Components...)...)
+		flds = append(flds, xfmr.groups(group.Groups...)...)
+	}
+
+	return flds
+}
+
+var mainTmpl = `
+// Code generated by protofix; DO NOT EDIT.
 // Copyright {{ .Year }} The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -214,12 +433,29 @@ const Req, Opt = true, false
 
 const (
 {{- range .Fields }}
-	{{ .Name }}{{ .Tag }} = {{ .Tag }}
+	{{ .Name }}{{ .Number }} = {{ .Number }} // {{ .Type }}
 {{- end }}
 )
-`))
+`
 
-var msgTmpl = template.Must(template.New("").Parse(`// Code generated by protofix; DO NOT EDIT.
+type fieldType int
+
+const (
+	tmplBool fieldType = 1 + iota
+)
+
+var tmplTypeByText = map[string]fieldType{
+	"BOOLEAN": tmplBool,
+}
+
+type typeLength struct{ Min, Max int }
+
+var typeLengths = map[fieldType]typeLength{
+	tmplBool: typeLength{1, 1},
+}
+
+var messageTmpl = `
+// Code generated by protofix; DO NOT EDIT.
 // Copyright {{ .Year }} The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -240,14 +476,27 @@ var (
 // {{ .Format }}{{ .Message }} is a {{ .FormatDesc }} format of the {{ .Message }} message which maps the codecs into individual fields.
 var {{ .Format }}{{ .Message }} = f0.Format{
 	Fields: map[int]f0.Codec{
+		{{- range .Definitions }}
+			{{ .Name }}{{ .Def.Number }}: f0.Fld{
+				{{- if .Required -}}
+					Req
+				{{- else -}}
+					Opt
+				{{- end -}}, f0.ASCII, f0.StringDefault(),
+				{{- if and (ne .Def.MinLen 0) (eq .Def.MinLen .Def.MaxLen) -}}
+					f0.Con{ {{- .Def.MinLen -}} }
+				{{- else -}}
+					f0.Var{ {{- .Def.MinLen -}}, {{- .Def.MaxLen -}} }
+				{{- end -}} }, // {{ .Def.Type -}}
+		{{- end }}
 	},
 	BodyLength9:	f0.BodyLengthFld{},
 	CheckSum10:		f0.ChecksumStringFld{},
 	Unknown:			f0.UnknownFld{},
 	Sort: []int{
-	{{- range .Fields }}
-		{{ .Name }}{{ .Def.Tag }},
+	{{- range .Sort }}
+		{{ .Name }}{{ .Def.Number }}, // {{ .Def.Type }}
 	{{- end }}
 	},
 }
-`))
+`

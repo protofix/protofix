@@ -14,7 +14,7 @@ its incomplete and extremely slow and allocates a lots of memory)
 
 ## Install
 
-    go get github.com/danil/protofix@v0.0.49
+    go get github.com/danil/protofix@v0.0.50
 
 ## Usage
 
