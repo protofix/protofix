@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/danil/equal4"
-	"github.com/danil/protofix/scanfix"
 	"github.com/danil/protoscan"
+	"github.com/protofix/protofix/scanfix"
 )
 
 var scanMessageTestCases = []struct {

@@ -1,4 +1,4 @@
-module github.com/danil/protofix
+module github.com/protofix/protofix
 
 go 1.16
 

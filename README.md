@@ -1,7 +1,7 @@
 # protofix
 
-[![Build Status](https://cloud.drone.io/api/badges/danil/protofix/status.svg)](https://cloud.drone.io/danil/protofix)
-[![Go Reference](https://pkg.go.dev/badge/github.com/danil/protofix.svg)](https://pkg.go.dev/github.com/danil/protofix)
+[![Build Status](https://cloud.drone.io/api/badges/protofix/protofix/status.svg)](https://cloud.drone.io/protofix/protofix)
+[![Go Reference](https://pkg.go.dev/badge/github.com/protofix/protofix.svg)](https://pkg.go.dev/github.com/protofix/protofix)
 
 FIX protocol codec for Go.  
 Source files are distributed under the BSD-style license
@@ -14,7 +14,7 @@ its incomplete and extremely slow and allocates a lots of memory)
 
 ## Install
 
-    go get github.com/danil/protofix@v0.0.50
+    go get github.com/protofix/protofix@v0.0.51
 
 ## Usage
 
@@ -24,7 +24,7 @@ package main
 import (
     "fmt"
 
-    "github.com/danil/protofix/moex44"
+    "github.com/protofix/protofix/moex44"
 )
 
 type MOEX44Logon struct {
@@ -77,7 +77,7 @@ Output:
 go test -bench=. ./...
 goos: linux
 goarch: amd64
-pkg: github.com/danil/protofix/moex44
+pkg: github.com/protofix/protofix/moex44
 cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
 BenchmarkMarshal/marshal_many_fields_275-8         	  103887	     11953 ns/op
 ```

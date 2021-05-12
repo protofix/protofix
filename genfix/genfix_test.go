@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/danil/protofix/genfix/internal/testspec"
+	"github.com/protofix/protofix/genfix/internal/testspec"
 )
 
 func TestReq(t *testing.T) {

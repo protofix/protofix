@@ -14,18 +14,18 @@ import (
 	"path"
 	"strings"
 
-	"github.com/danil/protofix/genfix"
-	"github.com/danil/protofix/specfix"
+	"github.com/protofix/protofix/genfix"
+	"github.com/protofix/protofix/specfix"
 )
 
 var specs = []genfix.Package{
-	genfix.Package{Name: "moex44", Info: "MOEX.4.4 (FIX.4.4)", Spec: specfix.MOEX44},
+	genfix.Package{Name: "moex44", Format: "FIX.4.4", Info: "MOEX.4.4 (FIX.4.4)", Spec: specfix.MOEX44},
 }
 
 //go:embed test.xml
 var testXML []byte
 
-var testSpec = genfix.Package{Name: "testspec", Info: "test FIX", Spec: testXML}
+var testSpec = genfix.Package{Name: "testspec", Format: "FIX.0.1", Info: "test FIX.0.1", Spec: testXML}
 
 func main() {
 	log.SetFlags(0)

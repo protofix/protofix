@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strconv"
 
-	f0 "github.com/danil/protofix/codecfix"
+	f0 "github.com/protofix/protofix/codecfix"
 )
 
 // Field is a Protoscan splitter which splits field of the FIX message.

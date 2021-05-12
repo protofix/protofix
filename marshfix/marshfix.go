@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	f0 "github.com/danil/protofix/codecfix"
+	f0 "github.com/protofix/protofix/codecfix"
 )
 
 type Marshal struct {

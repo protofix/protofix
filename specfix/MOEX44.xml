@@ -29,9 +29,9 @@
  <components>
  </components>
  <fields>
-  <field number='8' name='BeginString' type='STRING' length='7' />
+  <field number='8' name='BeginString' type='STRING' minlength='7' maxlength='7' />
   <field number='9' name='BodyLength' type='LENGTH' minlength='1' maxlength='18' />
-  <field number='10' name='CheckSum' type='STRING' length='3' />
+  <field number='10' name='CheckSum' type='STRING' minlength='3' maxlength='3' />
   <field number='34' name='MsgSeqNum' type='SEQNUM' />
   <field number='35' name='MsgType' type='STRING' minlength='1' maxlength='2'>
    <value enum='0' description='HEARTBEAT' />
@@ -49,7 +49,7 @@
    <value enum='N' description='NO' />
    <value enum='Y' description='YES' />
   </field>
-  <field number='98' name='EncryptMethod' type='INT' length='1'>
+  <field number='98' name='EncryptMethod' type='INT' minlength='1' maxlength='1'>
    <value enum='0' description='NONEOTHER' />
   </field>
   <field number='108' name='HeartBtInt' type='INT' minlength='1' maxlength='18'>
@@ -121,14 +121,14 @@
   </field>
   <field number='554' name='Password' type='STRING' />
   <field number='925' name='NewPassword' type='STRING' />
-  <field number='1409' name='SessionStatus' type='INT' length='1'>
+  <field number='1409' name='SessionStatus' type='INT' minlength='1' maxlength='1'>
    <value enum='0' />
    <value enum='3' />
   </field>
-  <field number='6867' name='CancelOnDisconnect' type='STRING' length='1'>
+  <field number='6867' name='CancelOnDisconnect' type='STRING' minlength='1' maxlength='1'>
    <value enum='A' />
   </field>
-  <field number='6936' name='LanguageID' type='STRING' length='1'>
+  <field number='6936' name='LanguageID' type='STRING' minlength='1' maxlength='1'>
    <value enum='R' description='RUSSIAN' />
    <value enum='E' description='ENGLISH' />
   </field>

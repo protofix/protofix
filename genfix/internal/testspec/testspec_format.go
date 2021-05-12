@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package testspec provides test FIX protocol format.
+// Package testspec provides test FIX.0.1 protocol format.
 package testspec
 
 const Req, Opt = true, false

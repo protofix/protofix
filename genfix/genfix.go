@@ -17,26 +17,81 @@ import (
 	"text/template"
 	"time"
 
-	f0 "github.com/danil/protofix/codecfix"
-	"github.com/danil/protofix/specfix"
-	"github.com/danil/protofix/stringfix"
+	f0 "github.com/protofix/protofix/codecfix"
+	"github.com/protofix/protofix/specfix"
+	"github.com/protofix/protofix/stringfix"
 )
 
 //go:generate go run main.go
 
 type Package struct {
-	Name string
-	Info string
-	Spec []byte
+	Name   string
+	Format string
+	Info   string
+	Spec   []byte
 }
 
 // Generate generates a Go FIX codecs by a XML specifications.
-func Generate(dir string, specs []Package) error {
+func Generate(dir string, specs []Package, opts ...Option) error {
+	conf := Configuration{
+		Serialize: map[string]Serialize{
+			"BOOLEAN":           Serialize{Func: "BoolDefault"},
+			"BYTES":             Serialize{Func: "Bytes"},
+			"CHECKSUM":          Serialize{Func: "ChecksumString"},
+			"INT":               Serialize{Func: "IntDefault"},
+			"SEQNUM":            Serialize{Func: "SeqNum"},
+			"LENGTH":            Serialize{Func: "BodyLength"},
+			"STRING":            Serialize{Func: "String"},
+			"UNKNOWN":           Serialize{Func: "Unknown"},
+			"UTCTIMESTAMP":      Serialize{Func: "UTCTimestampNanosecondTime"},
+			"UTCTIMESTAMPMILLI": Serialize{Func: "UTCTimestampNanosecondTime"},
+			"UTCTIMESTAMPNANO":  Serialize{Func: "UTCTimestampNanosecondTime"},
+		},
+		CustomSerialize: map[int]CustomSerialize{
+			8:   CustomSerialize{Func: "StringDefault"},
+			10:  CustomSerialize{Func: "ChecksumString"},
+			108: CustomSerialize{Func: "SecondsDuration"},
+		},
+		EnumFormat: map[string]EnumFormat{
+			"BOOLEAN":           EnumFormat{Func: func(s string) (string, error) { m := map[string]string{"Y": "true", "N": "false"}; return m[s], nil }},
+			"BYTES":             EnumFormat{Func: func(s string) (string, error) { return s, nil }},
+			"CHECKSUM":          EnumFormat{Func: func(s string) (string, error) { return fmt.Sprintf("%q", s), nil }},
+			"INT":               EnumFormat{Func: func(s string) (string, error) { return s, nil }},
+			"SEQNUM":            EnumFormat{Func: func(s string) (string, error) { return s, nil }},
+			"LENGTH":            EnumFormat{Func: func(s string) (string, error) { return s, nil }},
+			"STRING":            EnumFormat{Func: func(s string) (string, error) { return fmt.Sprintf("%q", s), nil }},
+			"UNKNOWN":           EnumFormat{Func: func(s string) (string, error) { return s, nil }},
+			"UTCTIMESTAMP":      EnumFormat{Func: func(s string) (string, error) { return fmt.Sprintf("%q", s), nil }},
+			"UTCTIMESTAMPMILLI": EnumFormat{Func: func(s string) (string, error) { return fmt.Sprintf("%q", s), nil }},
+			"UTCTIMESTAMPNANO":  EnumFormat{Func: func(s string) (string, error) { return fmt.Sprintf("%q", s), nil }},
+		},
+		CustomEnumFormat: map[int]EnumFormat{
+			108: EnumFormat{Func: func(s string) (string, error) { return s + "*time.Second", nil }},
+		},
+		Length: map[string]Length{
+			"BOOLEAN":           Length{Min: 1, Max: 1},
+			"BYTES":             Length{Min: 1, Max: 65536},
+			"CHECKSUM":          Length{Min: 3, Max: 3},
+			"INT":               Length{Min: 1, Max: 19},
+			"SEQNUM":            Length{Min: 1, Max: 19},
+			"LENGTH":            Length{Min: 1, Max: 19},
+			"STRING":            Length{Min: 1, Max: 65536},
+			"UNKNOWN":           Length{Min: 1, Max: 65536},
+			"UTCTIMESTAMP":      Length{Min: 1, Max: 27},
+			"UTCTIMESTAMPMILLI": Length{Min: 1, Max: 27},
+			"UTCTIMESTAMPNANO":  Length{Min: 1, Max: 27},
+		},
+	}
+
+	for _, opt := range opts {
+		opt(&conf)
+	}
+
 	for _, pkg := range specs {
 		pth := path.Join(dir, pkg.Name)
 		fmt.Printf("Generating %s ...", pth)
 
-		err := packageGen{pkg: pkg, dir: pth}.generate(pkg.Spec)
+		err := packageGenerate{pkg: pkg, dir: pth, conf: conf}.generate(pkg.Spec)
 		if err != nil {
 			return fmt.Errorf("generate package: %q, directory: %q, %w", pkg.Name, pth, err)
 		}
@@ -47,37 +102,42 @@ func Generate(dir string, specs []Package) error {
 	return nil
 }
 
-type packageGen struct {
-	pkg Package
-	dir string
+type packageGenerate struct {
+	pkg  Package
+	dir  string
+	conf Configuration
 }
 
-type fieldDef struct {
+type constantData struct {
 	Number int
 	Name   string
 	Type   string
-	MinLen int
-	MaxLen int
 }
 
-type componentDef struct {
-	Name   string
-	Fields []tplField
+type codecData struct {
+	Number     int
+	Name       string
+	Type       string
+	Required   bool
+	Serializer string
+	Enums      []fieldEnum
+	MinLen     int
+	MaxLen     int
 }
 
-type tplMessage struct {
-	Name   string
-	Fields []tplField
+type fieldEnum struct {
+	Value       string
+	Description string
 }
 
-type tplField struct {
-	Name     string
-	Required bool
-	Def      fieldDef
-}
+// type tmplField struct {
+// 	Name     string
+// 	Required bool
+// 	Define   fieldDefine
+// }
 
 // generate generates a Go FIX codec by a XML specification.
-func (g packageGen) generate(src []byte) error {
+func (gen packageGenerate) generate(src []byte) error {
 	var spec specfix.Spec
 	r := bytes.NewReader(src)
 	d := xml.NewDecoder(r)
@@ -87,28 +147,15 @@ func (g packageGen) generate(src []byte) error {
 		return fmt.Errorf("xml decoder: decode: %w", err)
 	}
 
-	fldDefs := make([]fieldDef, 0, len(spec.FieldDefs))
-	fldDefByName := make(map[string]fieldDef, len(spec.FieldDefs))
+	consts := make([]constantData, 0, len(spec.Fields))
 
-	for _, fld := range spec.FieldDefs {
-		minLen := fld.MinLen
-		maxLen := fld.MaxLen
-		if minLen == 0 && maxLen == 0 {
-			typeLen := typeLengths[tmplTypeByText[fld.Type]]
-			minLen = typeLen.Min
-			maxLen = typeLen.Max
-		}
-
-		fldDef := fieldDef{
+	for _, fld := range spec.Fields {
+		f := constantData{
 			Number: fld.Number,
 			Name:   fld.Name,
 			Type:   fld.Type,
-			MinLen: minLen,
-			MaxLen: maxLen,
-			// Values []*xmlValue // FIXME: enums
 		}
-		fldDefs = append(fldDefs, fldDef)
-		fldDefByName[fld.Name] = fldDef
+		consts = append(consts, f)
 	}
 
 	tmpl, err := template.New("Main").Parse(mainTmpl)
@@ -122,26 +169,26 @@ func (g packageGen) generate(src []byte) error {
 		Package    string
 		FormatDesc string
 		Year       int
-		Fields     []fieldDef
+		Constants  []constantData
 	}{
-		Package:    g.pkg.Name,
-		FormatDesc: g.pkg.Info,
+		Package:    gen.pkg.Name,
+		FormatDesc: gen.pkg.Info,
 		Year:       time.Now().Year(),
-		Fields:     fldDefs,
+		Constants:  consts,
 	})
 	if err != nil {
 		return fmt.Errorf("text template execute: %w", err)
 	}
 
-	if _, err := os.Stat(g.dir); os.IsNotExist(err) {
-		err = os.MkdirAll(g.dir, os.ModeDir|0755)
+	if _, err := os.Stat(gen.dir); os.IsNotExist(err) {
+		err = os.MkdirAll(gen.dir, os.ModeDir|0755)
 		if err != nil {
 			return fmt.Errorf("os: make directory: %w", err)
 		}
 	}
 
-	fname := fmt.Sprintf("%s_format.go", g.pkg.Name)
-	pth := path.Join(g.dir, fname)
+	fname := fmt.Sprintf("%s_format.go", gen.pkg.Name)
+	pth := path.Join(gen.dir, fname)
 	f, err := os.Create(pth)
 	if err != nil {
 		return fmt.Errorf("os: create file %q: %w", pth, err)
@@ -158,198 +205,199 @@ func (g packageGen) generate(src []byte) error {
 		return fmt.Errorf("os file write %q: %w", pth, err)
 	}
 
-	compDefByName := make(map[string]componentDef, len(spec.ComponentDefs))
+	fldByName := make(map[string]specfix.FieldDefine, len(spec.Fields))
 
-	// Populating the fields of the components until satisfying all
-	// component-to-component references due to the ability
-	// to follow components in an unsorted order.
-	for i, incomplete := 0, true; incomplete; i++ {
-		if i == 1000 {
-			log.Printf("Too many attempts %d to fill in the fields of the components.", i)
-			break
-		}
+	for _, f := range spec.Fields {
+		fldByName[f.Name] = f
+	}
 
-		incomplete = false
-		for _, comp := range spec.ComponentDefs {
-			if _, ok := compDefByName[comp.Name]; ok {
-				continue
-			}
-
-			flds, ok := flattenComponent(comp, fldDefByName, compDefByName)
-			if !ok {
-				incomplete = true
-				continue
-			}
-
-			compDefByName[comp.Name] = componentDef{Name: comp.Name, Fields: flds}
-		}
+	compByName, err := spec.MemorizeComponents()
+	if err != nil {
+		return fmt.Errorf("xml spec: memorize components: %w", err)
 	}
 
 	for _, msg := range spec.Messages {
-		m := messageGen{
-			pkg:           g.pkg,
-			dir:           g.dir,
-			message:       tplMessage{Name: msg.Name},
-			header:        spec.Header,
-			fields:        msg.Fields,
-			components:    msg.Components,
-			groups:        msg.Groups,
-			trailer:       spec.Trailer,
-			fieldDefs:     fldDefByName,
-			componentDefs: compDefByName,
+		m := messageGenerate{
+			pkg:        gen.pkg,
+			dir:        gen.dir,
+			header:     spec.Header,
+			message:    msg,
+			trailer:    spec.Trailer,
+			fldByName:  fldByName,
+			compByName: compByName,
+			conf:       gen.conf,
 		}
 		err = m.generate(src)
 		if err != nil {
-			return fmt.Errorf("generate message: %q package: %q, directory: %q, %w", msg.Name, g.pkg.Name, g.dir, err)
+			return fmt.Errorf("generate message: %q package: %q, directory: %q, %w", msg.Name, gen.pkg.Name, gen.dir, err)
 		}
 	}
 
 	return nil
 }
 
-// flattenComponent transforms the component definition containing nesting to the flat fields.
-func flattenComponent(src specfix.ComponentDef, fldDefs map[string]fieldDef, compDefs map[string]componentDef) ([]tplField, bool) {
-	var flds []tplField
-
-	for _, fld := range src.Fields {
-		fDef, ok := fldDefs[fld.Name]
-		if !ok {
-			return nil, false
-		}
-		f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
-		flds = append(flds, f)
-	}
-
-	for _, comp := range src.Components {
-		cDef, ok := compDefs[comp.Name]
-		if !ok {
-			return nil, false
-		}
-		for _, fld := range cDef.Fields {
-			fDef, ok := fldDefs[fld.Name]
-			if !ok {
-				return nil, false
-			}
-			f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
-			flds = append(flds, f)
-		}
-	}
-
-	for _, grp := range src.Groups {
-		f, ok := flattenGroup(grp, fldDefs, compDefs)
-		if !ok {
-			return nil, false
-		}
-		flds = append(flds, f...)
-	}
-
-	return flds, true
-}
-
-// flattenGroup transforms the group containing nesting to the flat fields.
-func flattenGroup(src specfix.Group, fldDefs map[string]fieldDef, compDefs map[string]componentDef) ([]tplField, bool) {
-	var flds []tplField
-
-	for _, fld := range src.Fields {
-		fDef, ok := fldDefs[fld.Name]
-		if !ok {
-			return nil, false
-		}
-		f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
-		flds = append(flds, f)
-	}
-
-	for _, comp := range src.Components {
-		cDef, ok := compDefs[comp.Name]
-		if !ok {
-			return nil, false
-		}
-		for _, fld := range cDef.Fields {
-			fDef, ok := fldDefs[fld.Name]
-			if !ok {
-				return nil, false
-			}
-			f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
-			flds = append(flds, f)
-		}
-	}
-
-	for _, grp := range src.Groups {
-		f, ok := flattenGroup(grp, fldDefs, compDefs)
-		if !ok {
-			return nil, false
-		}
-		flds = append(flds, f...)
-	}
-
-	return flds, true
-}
-
-type messageGen struct {
-	pkg           Package
-	dir           string
-	message       tplMessage
-	header        specfix.Header
-	fields        []specfix.Field
-	components    []specfix.Component
-	groups        []specfix.Group
-	trailer       []specfix.Field
-	fieldDefs     map[string]fieldDef
-	componentDefs map[string]componentDef
+type messageGenerate struct {
+	pkg        Package
+	dir        string
+	header     specfix.Header
+	message    specfix.Message
+	trailer    specfix.Trailer
+	fldByName  map[string]specfix.FieldDefine
+	compByName map[string]specfix.ComponentMemo
+	conf       Configuration
 }
 
 // generate generates a messages for the Go FIX codec by the XML specification.
-func (g messageGen) generate(src []byte) error {
-	// Transform a fields/components/groups specs to a fields.
-	var flds []tplField
-	xfmr := xfmrSpec{fieldDefs: g.fieldDefs, componentDefs: g.componentDefs}
-	flds = append(flds, xfmr.fields(g.header.Fields...)...)
-	flds = append(flds, xfmr.components(g.header.Components...)...)
-	flds = append(flds, xfmr.groups(g.header.Groups...)...)
-	flds = append(flds, xfmr.fields(g.fields...)...)
-	flds = append(flds, xfmr.components(g.components...)...)
-	flds = append(flds, xfmr.fields(g.trailer...)...)
-
-	g.message.Fields = flds
-
-	tmpl, err := template.New("Message").Parse(messageTmpl)
+func (gen messageGenerate) generate(src []byte) error {
+	fldByName, err := gen.message.MemorizeFields(gen.header, gen.trailer, gen.fldByName, gen.compByName)
 	if err != nil {
-		return fmt.Errorf("text template parse: %w", err)
+		return err
 	}
 
-	defs := make([]tplField, 0, len(g.message.Fields))
-	for _, f := range g.message.Fields {
-		if f.Def.Number == f0.BodyLength9 || f.Def.Number == f0.CheckSum10 {
+	var (
+		bodyLengthCodec codecData
+		checkSumCodec   codecData
+		unknownCodec    = codecData{
+			Type:       "UNKNOWN",
+			Serializer: gen.conf.Serialize["UNKNOWN"].Func,
+			MinLen:     gen.conf.Length["UNKNOWN"].Min,
+			MaxLen:     gen.conf.Length["UNKNOWN"].Max,
+		}
+	)
+
+	codecs := make([]codecData, 0, len(fldByName))
+	consts := make([]constantData, 0, len(fldByName))
+
+	for _, fld := range fldByName {
+		min := fld.Define.MinLen
+		if min == 0 {
+			min = gen.conf.Length[fld.Define.Type].Min
+		}
+
+		max := fld.Define.MaxLen
+		if max == 0 {
+			max = gen.conf.Length[fld.Define.Type].Max
+		}
+
+		enums := make([]fieldEnum, 0, len(fld.Define.Values))
+
+		if fld.Define.Number == f0.BeginString8 {
+			e := fieldEnum{Value: gen.pkg.Format}
+			enums = append(enums, e)
+		}
+
+		for _, val := range fld.Define.Values {
+			e := fieldEnum{Value: val.Enum, Description: val.Description}
+			enums = append(enums, e)
+		}
+
+		var serializer string
+
+		if s, ok := gen.conf.CustomSerialize[fld.Define.Number]; ok {
+			serializer = s.Func
+		}
+
+		if serializer == "" {
+			if s, ok := gen.conf.Serialize[fld.Define.Type]; ok {
+				serializer = s.Func
+			}
+		}
+
+		f := codecData{
+			Number:     fld.Define.Number,
+			Name:       fld.Define.Name,
+			Type:       fld.Define.Type,
+			Required:   fld.Required,
+			Serializer: serializer,
+			Enums:      enums,
+			MinLen:     min,
+			MaxLen:     max,
+		}
+
+		c := constantData{
+			Number: f.Number,
+			Name:   f.Name,
+			Type:   f.Type,
+		}
+
+		consts = append(consts, c)
+
+		if fld.Define.Number == f0.BodyLength9 {
+			bodyLengthCodec = f
 			continue
 		}
-		defs = append(defs, f)
+
+		if fld.Define.Number == f0.CheckSum10 {
+			checkSumCodec = f
+			continue
+		}
+
+		codecs = append(codecs, f)
+	}
+
+	funcs := template.FuncMap{
+		"EnumFormat": func(tag int, typ, constraint string) string {
+			var enum string
+			var err error
+
+			if f, ok := gen.conf.CustomEnumFormat[tag]; ok {
+				enum, err = f.Func(constraint)
+				if err != nil {
+					log.Printf("Custom format FIX enum: %s.", err)
+				}
+			}
+
+			if enum != "" {
+				return enum
+			}
+
+			if f, ok := gen.conf.EnumFormat[typ]; ok {
+				enum, err = f.Func(constraint)
+				if err != nil {
+					log.Printf("Format FIX enum: %s.", err)
+				}
+			}
+
+			return enum
+		},
+	}
+
+	tmpl, err := template.New("Message").Funcs(funcs).Parse(messageTmpl)
+	if err != nil {
+		return fmt.Errorf("text template parse: %w", err)
 	}
 
 	var b bytes.Buffer
 
 	err = tmpl.ExecuteTemplate(&b, "Message", struct {
-		Package     string
-		Format      string
-		FormatDesc  string
-		Year        int
-		Message     string
-		Definitions []tplField
-		Sort        []tplField
+		Package         string
+		Format          string
+		FormatDesc      string
+		Year            int
+		Message         string
+		Codecs          []codecData
+		BodyLengthCodec codecData
+		CheckSumCodec   codecData
+		UnknownCodec    codecData
+		Sort            []constantData
 	}{
-		Package:     g.pkg.Name,
-		Format:      strings.ToUpper(g.pkg.Name),
-		FormatDesc:  g.pkg.Info,
-		Year:        time.Now().Year(),
-		Message:     g.message.Name,
-		Definitions: defs,
-		Sort:        g.message.Fields,
+		Package:         gen.pkg.Name,
+		Format:          strings.ToUpper(gen.pkg.Name),
+		FormatDesc:      gen.pkg.Info,
+		Year:            time.Now().Year(),
+		Message:         gen.message.Name,
+		Codecs:          codecs,
+		BodyLengthCodec: bodyLengthCodec,
+		CheckSumCodec:   checkSumCodec,
+		UnknownCodec:    unknownCodec,
+		Sort:            consts,
 	})
 	if err != nil {
 		return fmt.Errorf("text template execute: %w", err)
 	}
 
-	fname := fmt.Sprintf("%s_%s_format.go", g.pkg.Name, stringfix.ToSnakeCase(g.message.Name))
-	pth := path.Join(g.dir, fname)
+	fname := fmt.Sprintf("%s_%s_format.go", gen.pkg.Name, stringfix.ToSnakeCase(gen.message.Name))
+	pth := path.Join(gen.dir, fname)
 	f, err := os.Create(pth)
 	if err != nil {
 		return fmt.Errorf("os: create file %q: %w", pth, err)
@@ -366,58 +414,6 @@ func (g messageGen) generate(src []byte) error {
 		return fmt.Errorf("os file write %q: %w", pth, err)
 	}
 	return nil
-}
-
-// xfmrSpec transforms XML fields/components/groups to template fields.
-type xfmrSpec struct {
-	fieldDefs     map[string]fieldDef
-	componentDefs map[string]componentDef
-}
-
-// fields transforms xml fields to template fields.
-func (xfmr xfmrSpec) fields(src ...specfix.Field) []tplField {
-	var flds []tplField
-
-	for _, fld := range src {
-		fDef, ok := xfmr.fieldDefs[fld.Name]
-		if !ok {
-			log.Printf("Missing field %q specification/definition.", fld.Name)
-		}
-
-		f := tplField{Name: fld.Name, Required: fld.Required, Def: fDef}
-		flds = append(flds, f)
-	}
-
-	return flds
-}
-
-// components transforms xml components to template fields.
-func (xfmr xfmrSpec) components(src ...specfix.Component) []tplField {
-	var flds []tplField
-
-	for _, comp := range src {
-		cDef, ok := xfmr.componentDefs[comp.Name]
-		if !ok {
-			log.Printf("Missing component %q specification/definition.", comp.Name)
-			continue
-		}
-		flds = append(flds, cDef.Fields...)
-	}
-
-	return flds
-}
-
-// groups transforms xml groups to template fields.
-func (xfmr xfmrSpec) groups(src ...specfix.Group) []tplField {
-	var flds []tplField
-
-	for _, group := range src {
-		flds = append(flds, xfmr.fields(group.Fields...)...)
-		flds = append(flds, xfmr.components(group.Components...)...)
-		flds = append(flds, xfmr.groups(group.Groups...)...)
-	}
-
-	return flds
 }
 
 var mainTmpl = `
@@ -432,26 +428,73 @@ package {{ .Package }}
 const Req, Opt = true, false
 
 const (
-{{- range .Fields }}
+{{- range .Constants }}
 	{{ .Name }}{{ .Number }} = {{ .Number }} // {{ .Type }}
 {{- end }}
 )
 `
 
-type fieldType int
-
-const (
-	tmplBool fieldType = 1 + iota
-)
-
-var tmplTypeByText = map[string]fieldType{
-	"BOOLEAN": tmplBool,
+type Configuration struct {
+	Serialize        map[string]Serialize
+	CustomSerialize  map[int]CustomSerialize
+	EnumFormat       map[string]EnumFormat
+	CustomEnumFormat map[int]EnumFormat
+	Length           map[string]Length
 }
 
-type typeLength struct{ Min, Max int }
+type Serialize struct {
+	Type string
+	Func string
+}
 
-var typeLengths = map[fieldType]typeLength{
-	tmplBool: typeLength{1, 1},
+type CustomSerialize struct {
+	Tag  int
+	Func string
+}
+
+type EnumFormat struct {
+	Type string
+	Func func(string) (string, error)
+}
+
+type Length struct {
+	Type string
+	Min  int
+	Max  int
+}
+
+type Option func(*Configuration)
+
+func WithSerialize(serializes ...Serialize) Option {
+	return func(c *Configuration) {
+		for _, s := range serializes {
+			c.Serialize[s.Type] = s
+		}
+	}
+}
+
+func WithCustomSerialize(serializes ...CustomSerialize) Option {
+	return func(c *Configuration) {
+		for _, s := range serializes {
+			c.CustomSerialize[s.Tag] = s
+		}
+	}
+}
+
+func WithEnumFormat(formats ...EnumFormat) Option {
+	return func(c *Configuration) {
+		for _, f := range formats {
+			c.EnumFormat[f.Type] = f
+		}
+	}
+}
+
+func WithLength(lengths ...Length) Option {
+	return func(c *Configuration) {
+		for _, l := range lengths {
+			c.Length[l.Type] = l
+		}
+	}
 }
 
 var messageTmpl = `
@@ -464,8 +507,10 @@ var messageTmpl = `
 package {{ .Package }}
 
 import (
-	f0 "github.com/danil/protofix/codecfix"
-	"github.com/danil/protofix/marshfix"
+	"time"
+
+	f0 "github.com/protofix/protofix/codecfix"
+	"github.com/protofix/protofix/marshfix"
 )
 
 var (
@@ -476,26 +521,80 @@ var (
 // {{ .Format }}{{ .Message }} is a {{ .FormatDesc }} format of the {{ .Message }} message which maps the codecs into individual fields.
 var {{ .Format }}{{ .Message }} = f0.Format{
 	Fields: map[int]f0.Codec{
-		{{- range .Definitions }}
-			{{ .Name }}{{ .Def.Number }}: f0.Fld{
-				{{- if .Required -}}
-					Req
+		{{- range $index, $codec := .Codecs }}
+			{{ $codec.Name }}{{ $codec.Number }}: f0.Fld{
+				{{- if $codec.Required -}} Req {{- else -}} Opt {{- end -}}, {{- /**/ -}}
+				f0.ASCII, {{- /**/ -}}
+				f0.{{ $codec.Serializer }}(
+					{{- range $codec.Enums -}}
+						{{- EnumFormat $codec.Number $codec.Type .Value -}}
+						{{- if ne .Description "" -}}
+							/* {{ .Description }} */
+						{{- end -}}
+						,
+					{{- end -}}
+				),
+				{{- if and (ne $codec.MinLen 0) (eq $codec.MinLen $codec.MaxLen) -}}
+					f0.Con{ {{- $codec.MinLen -}} }
 				{{- else -}}
-					Opt
-				{{- end -}}, f0.ASCII, f0.StringDefault(),
-				{{- if and (ne .Def.MinLen 0) (eq .Def.MinLen .Def.MaxLen) -}}
-					f0.Con{ {{- .Def.MinLen -}} }
-				{{- else -}}
-					f0.Var{ {{- .Def.MinLen -}}, {{- .Def.MaxLen -}} }
-				{{- end -}} }, // {{ .Def.Type -}}
+					f0.Var{ {{- $codec.MinLen -}}, {{- $codec.MaxLen -}} }
+				{{- end -}} },
 		{{- end }}
 	},
-	BodyLength9:	f0.BodyLengthFld{},
-	CheckSum10:		f0.ChecksumStringFld{},
-	Unknown:			f0.UnknownFld{},
+	BodyLength9:	f0.BodyLengthFld{ {{- /**/ -}}
+		f0.ASCII, {{- /**/ -}}
+		f0.{{ .BodyLengthCodec.Serializer }}(
+			{{- range .BodyLengthCodec.Enums -}}
+				{{- EnumFormat .BodyLengthCodec.Number .BodyLengthCodec.Type .Value -}}
+				{{- if ne .Description "" -}}
+					/* {{ .Description }} */
+				{{- end -}}
+				,
+			{{- end -}}
+		),
+		{{- if and (ne .BodyLengthCodec.MinLen 0) (eq .BodyLengthCodec.MinLen .BodyLengthCodec.MaxLen) -}}
+			f0.Con{ {{- .BodyLengthCodec.MinLen -}} }
+		{{- else -}}
+			f0.Var{ {{- .BodyLengthCodec.MinLen -}}, {{- .BodyLengthCodec.MaxLen -}} }
+		{{- end -}}
+	},
+	CheckSum10:		f0.ChecksumStringFld{ {{- /**/ -}}
+		f0.ASCII, {{- /**/ -}}
+		f0.{{ .CheckSumCodec.Serializer }}(
+			{{- range .CheckSumCodec.Enums -}}
+				{{- EnumFormat .CheckSumCodec.Number .CheckSumCodec.Type .Value -}}
+				{{- if ne .Description "" -}}
+					/* {{ .Description }} */
+				{{- end -}}
+				,
+			{{- end -}}
+		),
+		{{- if and (ne .CheckSumCodec.MinLen 0) (eq .CheckSumCodec.MinLen .CheckSumCodec.MaxLen) -}}
+			f0.Con{ {{- .CheckSumCodec.MinLen -}} }
+		{{- else -}}
+			f0.Var{ {{- .CheckSumCodec.MinLen -}}, {{- .CheckSumCodec.MaxLen -}} }
+		{{- end -}}
+	},
+	Unknown:			f0.UnknownFld{ {{- /**/ -}}
+		f0.ASCII, {{- /**/ -}}
+		f0.{{ .UnknownCodec.Serializer }}(
+			{{- range .UnknownCodec.Enums -}}
+				{{- EnumFormat .UnknownCodec.Number .UnknownCodec.Type .Value -}}
+				{{- if ne .Description "" -}}
+					/* {{ .Description }} */
+				{{- end -}}
+				,
+			{{- end -}}
+		),
+		{{- if and (ne .UnknownCodec.MinLen 0) (eq .UnknownCodec.MinLen .UnknownCodec.MaxLen) -}}
+			f0.Con{ {{- .UnknownCodec.MinLen -}} }
+		{{- else -}}
+			f0.Var{ {{- .UnknownCodec.MinLen -}}, {{- .UnknownCodec.MaxLen -}} }
+		{{- end -}}
+	},
 	Sort: []int{
 	{{- range .Sort }}
-		{{ .Name }}{{ .Def.Number }}, // {{ .Def.Type }}
+		{{ .Name }}{{ .Number }}, // {{ .Type }}
 	{{- end }}
 	},
 }

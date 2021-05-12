@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/danil/equal4"
-	f0 "github.com/danil/protofix/codecfix"
-	"github.com/danil/protofix/marshfix"
-	"github.com/danil/protofix/moex44"
+	f0 "github.com/protofix/protofix/codecfix"
+	"github.com/protofix/protofix/marshfix"
+	"github.com/protofix/protofix/moex44"
 )
 
 var UnmarshalTestCases = []struct {
@@ -344,9 +344,10 @@ var MarshalTestCases = []struct {
 	},
 	{
 		line:      line(),
-		name:      `8/"begin string" and 35/"message type" and 98/"encrypt method" supplied by default`,
+		name:      `8/"begin string" and 98/"encrypt method" supplied by default`,
 		marshaler: moex44.MOEX44LogonMarshaler,
 		input: moex44Logon{
+			MsgType35:       "A",
 			BeginString8:    "",
 			SenderCompID49:  "Foo",
 			TargetCompID56:  "Bar",
