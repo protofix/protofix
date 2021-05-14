@@ -64,9 +64,9 @@ func main() {
     output = bytes.ReplaceAll(output, []byte{0x01}, []byte{'|'})
 
     if bytes.Equal(input, output) {
-        fmt.Printf("Messages %q are equal %q.\n", input, output)
+        fmt.Printf("Message %q are equal %q.\n", input, output)
     } else {
-        fmt.Printf("Messages %q are not equal %q!\n", input, output)
+        fmt.Printf("Message %q are not equal %q!\n", input, output)
     }
 ```
 
