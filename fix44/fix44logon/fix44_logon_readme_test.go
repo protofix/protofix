@@ -48,9 +48,9 @@ func TestFIX44LogonUnmarshalMarshal(t *testing.T) {
 	output = bytes.ReplaceAll(output, []byte{0x01}, []byte{'|'})
 
 	if bytes.Equal(input, output) {
-		t.Logf("Messages %q are equal %q.\n", input, output)
+		t.Logf("Message %q are equal to %q.\n", input, output)
 	} else {
-		t.Errorf("Messages %q are not equal %q!\n", input, output)
+		t.Errorf("Message %q are not equal to %q!\n", input, output)
 	}
 }
 

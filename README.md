@@ -64,16 +64,16 @@ func main() {
     output = bytes.ReplaceAll(output, []byte{0x01}, []byte{'|'})
 
     if bytes.Equal(input, output) {
-        fmt.Printf("Message %q are equal %q.\n", input, output)
+        fmt.Printf("Message %q are equal to %q.\n", input, output)
     } else {
-        fmt.Printf("Message %q are not equal %q!\n", input, output)
+        fmt.Printf("Message %q are not equal to %q!\n", input, output)
     }
 ```
 
 Output:
 
 ```
-Message "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|" are equal "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|".
+Message "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|" are equal to "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|".
 ```
 
 See this example in [fix44_logon_readme_test.go][]
