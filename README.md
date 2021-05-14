@@ -73,7 +73,7 @@ func main() {
 Output:
 
 ```
-Messages equal
+Message "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|" are equal "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|".
 ```
 
 See this example in [fix44_logon_readme_test.go][]
