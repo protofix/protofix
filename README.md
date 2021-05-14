@@ -14,7 +14,7 @@ its incomplete and extremely slow and allocates a lots of memory)
 
 ## Install
 
-    go get github.com/protofix/protofix@v0.0.51
+    go get github.com/protofix/protofix@v0.0.52
 
 ## Usage
 
@@ -22,54 +22,63 @@ its incomplete and extremely slow and allocates a lots of memory)
 package main
 
 import (
-    "fmt"
+    "bytes"
+    "time"
 
-    "github.com/protofix/protofix/moex44"
+    "github.com/protofix/protofix/fix44/fix44logon"
 )
 
-type MOEX44Logon struct {
-    BeginString8           string    `MOEX44:"8"`
-    BodyLength9            int       `MOEX44:"9"`
-    MsgType35              string    `MOEX44:"35"`
-    SenderCompID49         string    `MOEX44:"49"`
-    TargetCompID56         string    `MOEX44:"56"`
-    MsgSeqNum34            int       `MOEX44:"34"`
-    PossDupFlag43          bool      `MOEX44:"43"`
-    PossResend97           bool      `MOEX44:"97"`
-    SendingTime52          time.Time `MOEX44:"52"`
-    OrigSendingTime122     time.Time `MOEX44:"122"`
-    EncryptMethod98        int       `MOEX44:"98"`
-    HeartBtInt108          int       `MOEX44:"108"`
-    ResetSeqNumFlag141     bool      `MOEX44:"141"`
-    Password554            string    `MOEX44:"554"`
-    NewPassword925         string    `MOEX44:"925"`
-    SessionStatus1409      int       `MOEX44:"1409"`
-    CancelOnDisconnect6867 string    `MOEX44:"6867"`
-    LanguageID6936         string    `MOEX44:"6936"`
-    CheckSum10             string    `MOEX44:"10"`
-}
-
 func main() {
-    input := MOEX44Logon{
-        MsgType35:       "A",
-        SenderCompID49:  "Foo",
-        TargetCompID56:  "Bar",
-        MsgSeqNum34:     1,
-        SendingTime52:   time.Date(2021, time.March, 12, 12, 35, 12, 0, time.UTC),
-        EncryptMethod98: 0,
-        HeartBtInt108:   42,
-        Password554:     "12345678",
+    type Logon struct {
+        BeginString8       string    `FIX44:"8"`
+        BodyLength9        int       `FIX44:"9"`
+        MsgType35          string    `FIX44:"35"`
+        SenderCompID49     string    `FIX44:"49"`
+        TargetCompID56     string    `FIX44:"56"`
+        MsgSeqNum34        int       `FIX44:"34"`
+        SendingTime52      time.Time `FIX44:"52"`
+        EncryptMethod98    int       `FIX44:"98"`
+        HeartBtInt108      int       `FIX44:"108"`
+        ResetSeqNumFlag141 bool      `FIX44:"141"`
+        Username553        string    `FIX44:"553"`
+        Password554        string    `FIX44:"554"`
+        CheckSum10         string    `FIX44:"10"`
     }
-    p, _ := moex44.MOEX44LogonMarshaler.Marshal(&input)
-    fmt.Println(string(bytes.ReplaceAll(p, []byte{0x01}, []byte{'|'})))
-}
+
+    input := []byte("8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|")
+    input = bytes.ReplaceAll(input, []byte{'|'}, []byte{0x01})
+
+    logon := Logon{}
+
+    _, _, err := fix44logon.FIX44LogonUnmarshaler.Unmarshal(input, &logon)
+    if err != nil {
+        fmt.Printf("unexpected unmarshal error: %s", err)
+    }
+
+    output, _, _, err := fix44logon.FIX44LogonMarshaler.Marshal(&logon)
+    if err != nil {
+        fmt.Printf("unexpected marshal error: %s", err)
+    }
+
+    input = bytes.ReplaceAll(input, []byte{0x01}, []byte{'|'})
+    output = bytes.ReplaceAll(output, []byte{0x01}, []byte{'|'})
+
+    if bytes.Equal(input, output) {
+		fmt.Printf("Messages %q are equal %q.\n", input, output)
+    } else {
+        fmt.Printf("Messages %q are not equal %q!\n", input, output)
+    }
 ```
 
 Output:
 
 ```
-8=FIX.4.4|9=103|35=A|34=1|43=N|49=Foo|52=20210312-12:35:12.000000000|56=Bar|97=N|98=0|108=42|141=N|554=12345678|1409=0|10=060|
+Messages equal
 ```
+
+See this example in [fix44_logon_readme_test.go][]
+
+[fix44_logon_readme_test.go]: ./fix44/fix44logon/fix44_logon_readme_test.go#L15
 
 ## Benchmark
 
@@ -77,7 +86,7 @@ Output:
 go test -bench=. ./...
 goos: linux
 goarch: amd64
-pkg: github.com/protofix/protofix/moex44
+pkg: github.com/protofix/protofix/fix44/fix44logon
 cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
-BenchmarkMarshal/marshal_many_fields_275-8         	  103887	     11953 ns/op
+BenchmarkLogonUnmarshalMarshal-8          46309         25296 ns/op
 ```

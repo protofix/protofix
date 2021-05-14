@@ -27,7 +27,7 @@ var scanMessageTestCases = []struct {
 	expectedGaps      []string
 	expectedBodyLens  []string
 	expectedMsgTypes  []string
-	expectedChecksums []string
+	expectedCheckSums []string
 	expectedError     error
 }{
 	{
@@ -38,7 +38,7 @@ var scanMessageTestCases = []struct {
 		expectedTokens:    "8=FIX.4.4|9=70|35=A|49=FG|56=tgFZctx20008c|34=5|52=20210224-12:11:42.394|98=0|108=30|10=173|",
 		expectedBodyLens:  []string{"70"},
 		expectedMsgTypes:  []string{"A"},
-		expectedChecksums: []string{"173"},
+		expectedCheckSums: []string{"173"},
 	},
 	{
 		name:    "three messages",
@@ -52,7 +52,7 @@ var scanMessageTestCases = []struct {
 			"8=FIX.4.4|9=58|35=0|49=FG|56=tgFZctx20008c|34=6|52=20210224-12:12:12.162|10=129|",
 		expectedBodyLens:  []string{"70", "100", "58"},
 		expectedMsgTypes:  []string{"A", "4", "0"},
-		expectedChecksums: []string{"173", "157", "129"},
+		expectedCheckSums: []string{"173", "157", "129"},
 	},
 	{
 		name:    "immediate EOF",
@@ -68,7 +68,7 @@ var scanMessageTestCases = []struct {
 		expectedGaps:      []string{"foo", "bar"},
 		expectedBodyLens:  []string{"70"},
 		expectedMsgTypes:  []string{"A"},
-		expectedChecksums: []string{"173"},
+		expectedCheckSums: []string{"173"},
 	},
 	{
 		name:    "two messages with garbage before, after and between",
@@ -84,7 +84,7 @@ var scanMessageTestCases = []struct {
 		expectedGaps:      []string{"foo", "bar", "xyz"},
 		expectedBodyLens:  []string{"70", "100"},
 		expectedMsgTypes:  []string{"A", "4"},
-		expectedChecksums: []string{"173", "157"},
+		expectedCheckSums: []string{"173", "157"},
 	},
 	{
 		name:         "wrong begin string",
@@ -123,7 +123,7 @@ func TestScanMessage(t *testing.T) {
 				gaps      []string
 				bodyLens  []string
 				msgTypes  []string
-				checksums []string
+				checkSums []string
 			)
 
 			for scan.Scan() {
@@ -138,7 +138,7 @@ func TestScanMessage(t *testing.T) {
 				bodyLens = append(bodyLens, strconv.Itoa(split.BodyLength))
 
 				msgTypes = append(msgTypes, string(split.MsgType))
-				checksums = append(checksums, string(split.Checksum))
+				checkSums = append(checkSums, string(split.CheckSum))
 			}
 
 			err := scan.Err()
@@ -167,8 +167,8 @@ func TestScanMessage(t *testing.T) {
 				t.Errorf("unexpected message type, expected: %#v, received: %#v %s", tc.expectedMsgTypes, msgTypes, linkToExample)
 			}
 
-			if strings.Join(checksums, "") != strings.Join(tc.expectedChecksums, "") {
-				t.Errorf("unexpected checksum, expected: %#v, received: %#v %s", tc.expectedChecksums, checksums, linkToExample)
+			if strings.Join(checkSums, "") != strings.Join(tc.expectedCheckSums, "") {
+				t.Errorf("unexpected checksum, expected: %#v, received: %#v %s", tc.expectedCheckSums, checkSums, linkToExample)
 			}
 		})
 	}

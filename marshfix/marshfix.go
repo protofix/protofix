@@ -116,7 +116,7 @@ func (marsh Marshal) marshal(v interface{}) ([]byte, map[int]interface{}, []erro
 			err = fmt.Errorf("missing codec of the field tag %d %q", num, f0.TagText[num])
 			warns = append(warns, err)
 
-			codec = marsh.Format.Unknown
+			codec = marsh.Format.Unknown0
 		}
 
 		raw, err := codec.Encode(val)

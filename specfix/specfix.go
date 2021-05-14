@@ -13,6 +13,33 @@ import (
 	"log"
 )
 
+//go:embed FIX40.xml
+var FIX40 []byte
+
+//go:embed FIX41.xml
+var FIX41 []byte
+
+//go:embed FIX42.xml
+var FIX42 []byte
+
+//go:embed FIX43.xml
+var FIX43 []byte
+
+//go:embed FIX44.xml
+var FIX44 []byte
+
+//go:embed FIX50.xml
+var FIX50 []byte
+
+//go:embed FIX50SP1.xml
+var FIX50SP1 []byte
+
+//go:embed FIX50SP2.xml
+var FIX50SP2 []byte
+
+//go:embed FIXT11.xml
+var FIXT11 []byte
+
 //go:embed MOEX44.xml
 var MOEX44 []byte
 

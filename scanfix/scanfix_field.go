@@ -68,7 +68,7 @@ func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, e
 	}
 
 	if codec == nil {
-		codec = scan.Format.Unknown
+		codec = scan.Format.Unknown0
 	}
 
 	l := len(data) - scan.equal - 2

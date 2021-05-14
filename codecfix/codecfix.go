@@ -52,20 +52,20 @@ func (f BodyLengthFld) Sizer() Sizer                                { return f.S
 func (f BodyLengthFld) Cryptor() Cryptor       { return f.Crypt }
 func (f BodyLengthFld) Serializer() Serializer { return f.Serial }
 
-// ChecksumStringFld is a codec for the Checksum field. Checksum is always mandatory.
-type ChecksumStringFld struct {
+// CheckSumFld is a codec for the CheckSum field. CheckSum is always mandatory.
+type CheckSumFld struct {
 	Crypt  Cryptor
-	Serial ChecksumStringSrlz
+	Serial CheckSumSrlz
 	Size   Sizer
 }
 
-func (f ChecksumStringFld) Encode(rval reflect.Value) ([]byte, error)   { return encode(f, rval) }
-func (f ChecksumStringFld) Decode(rval reflect.Value, enc []byte) error { return decode(f, rval, enc) }
-func (f ChecksumStringFld) Required() bool                              { return true }
-func (f ChecksumStringFld) Sizer() Sizer                                { return f.Size }
+func (f CheckSumFld) Encode(rval reflect.Value) ([]byte, error)   { return encode(f, rval) }
+func (f CheckSumFld) Decode(rval reflect.Value, enc []byte) error { return decode(f, rval, enc) }
+func (f CheckSumFld) Required() bool                              { return true }
+func (f CheckSumFld) Sizer() Sizer                                { return f.Size }
 
-func (f ChecksumStringFld) Cryptor() Cryptor       { return f.Crypt }
-func (f ChecksumStringFld) Serializer() Serializer { return f.Serial }
+func (f CheckSumFld) Cryptor() Cryptor       { return f.Crypt }
+func (f CheckSumFld) Serializer() Serializer { return f.Serial }
 
 // UnknownFld is a codec for the unknown field.
 type UnknownFld struct {
@@ -144,18 +144,6 @@ func (c Var) Min() int  { return c.MinSize }
 func (c Var) Max() int  { return c.MaxSize }
 func (c Var) Hint() int { return c.MinSize }
 
-const (
-	MinBodyLength, MaxBodyLength                                 = 0, MaxInt
-	MinBool, MaxBool                                             = 0, 1
-	MinBytes, MaxBytes                                           = 0, 65536
-	MinChecksumString, MaxChecksumString                         = 3, 3
-	MinInt, MaxInt                                               = 0, 19
-	MinSecondsDuration, MaxSecondsDuration                       = 0, MaxInt
-	MinString, MaxString                                         = 0, MaxBytes
-	MinUTCTimestampNanosecondTime, MaxUTCTimestampNanosecondTime = 0, MaxInt
-	MinUnknown, MaxUnknown                                       = 0, MaxBytes
-)
-
 type Serializer interface {
 	// Serialize serializes the FIX fields.
 	Serialize(rvalue reflect.Value) (serialized []byte, err error)
@@ -170,7 +158,7 @@ type Serializer interface {
 // Bytes returns byte slice serializer with constraint.
 func Bytes(cstr ...[]byte) BytesSrlz { return BytesSrlz{Constraint: cstr} }
 
-// BytesSrlz intends to serialize/deserialize byte slice value only.
+// BytesSrlz intends to serialize/deserialize byte slice value.
 type BytesSrlz struct {
 	Constraint [][]byte
 }
@@ -226,7 +214,7 @@ func (ser BytesSrlz) Deserialize(rval reflect.Value, p []byte) error {
 // Bool returns bool serializer with constraint.
 func Bool(cstr ...bool) BoolSrlz { return BoolSrlz{Constraint: cstr} }
 
-// BoolSrlz intends to serialize/deserialize bool value only.
+// BoolSrlz intends to serialize/deserialize bool value.
 type BoolSrlz struct {
 	Constraint []bool
 }
@@ -317,7 +305,7 @@ var BoolRawCstr = [2]byte{'N', 'Y'}
 // Int returns int serializer with constraint.
 func Int(cstr ...int) IntSrlz { return IntSrlz{Constraint: cstr} }
 
-// IntSrlz intends to serialize/deserialize int value only.
+// IntSrlz intends to serialize/deserialize int value.
 type IntSrlz struct {
 	Constraint []int
 }
@@ -406,7 +394,7 @@ func (ser SeqNumSrlz) Deserialize(rval reflect.Value, p []byte) error {
 // BodyLength returns int serializer with constraint.
 func BodyLength(cstr ...int) BodyLengthSrlz { return BodyLengthSrlz{Constraint: cstr} }
 
-// BodyLengthSrlz intends to serialize/deserialize int value only.
+// BodyLengthSrlz intends to serialize/deserialize int value.
 type BodyLengthSrlz struct {
 	Constraint []int
 	Fields     map[int][]byte
@@ -477,6 +465,89 @@ func DeserializeInt(rval reflect.Value, p []byte, cstr []int) error {
 }
 
 //
+// Float serializers/deserializers.
+//
+
+// Float returns float serializer.
+func Float(cstr ...float64) FloatSrlz {
+	return FloatSrlz{}
+}
+
+// FloatSrlz intends to serialize/deserialize float value.
+type FloatSrlz struct {
+	Constraint []float64
+}
+
+// Serialize serializes float value.
+func (ser FloatSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	val := rval.Float()
+	if val == 0 {
+		return nil, nil
+	}
+	return SerializeFloat(val, ser.Constraint)
+}
+
+// Deserialize deserializes time value.
+func (ser FloatSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	return DeserializeFloat(rval, p, ser.Constraint)
+}
+
+// FloatDefault returns float serializer with constraint with default zero.
+func FloatDefault(cstr ...float64) FloatDefaultSrlz { return FloatDefaultSrlz{Constraint: cstr} }
+
+// FloatDefaultSrlz intends to serialize/deserialize float value with default zero.
+type FloatDefaultSrlz struct {
+	Constraint []float64
+}
+
+// Serialize serializes float value with default zero.
+func (ser FloatDefaultSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	return SerializeFloat(rval.Float(), ser.Constraint)
+}
+
+// Deserialize deserializes float value with default zero.
+func (ser FloatDefaultSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	return DeserializeFloat(rval, p, ser.Constraint)
+}
+
+func SerializeFloat(val float64, cstr []float64) ([]byte, error) {
+	if len(cstr) == 1 && val == 0 {
+		val = cstr[0]
+
+	} else if len(cstr) != 0 {
+		for _, c := range cstr {
+			if c == val {
+				goto srlzValidInt
+			}
+		}
+		return nil, fmt.Errorf("unexpected value %v, allow: %v", val, cstr)
+	srlzValidInt:
+	}
+
+	return []byte(fmt.Sprintf("%v", val)), nil
+}
+
+func DeserializeFloat(rval reflect.Value, p []byte, cstr []float64) error {
+	val, err := strconv.ParseFloat(string(p), 64)
+	if err != nil {
+		return err
+	}
+
+	if len(cstr) != 0 {
+		for _, c := range cstr {
+			if c == val {
+				goto dsrlzValidInt
+			}
+		}
+		return fmt.Errorf("unexpected value %v, allowable values: %v", val, cstr)
+	dsrlzValidInt:
+	}
+
+	rval.SetFloat(val)
+	return nil
+}
+
+//
 // Time duration serializers/deserializers.
 //
 
@@ -485,7 +556,7 @@ func SecondsDuration(cstr ...time.Duration) SecondsDurationSrlz {
 	return SecondsDurationSrlz{Constraint: cstr}
 }
 
-// SecondsDurationSrlz intends to serialize/deserialize duration value only.
+// SecondsDurationSrlz intends to serialize/deserialize duration value.
 type SecondsDurationSrlz struct {
 	Constraint []time.Duration
 }
@@ -545,7 +616,7 @@ func (ser SecondsDurationSrlz) Deserialize(rval reflect.Value, p []byte) error {
 // String returns string serializer with constraint.
 func String(cstr ...string) StringSrlz { return StringSrlz{Constraint: cstr} }
 
-// StringSrlz intends to serialize/deserialize string value only.
+// StringSrlz intends to serialize/deserialize string value.
 type StringSrlz struct {
 	Constraint []string
 }
@@ -567,7 +638,7 @@ func (ser StringSrlz) Deserialize(rval reflect.Value, p []byte) error {
 // StringDefault returns string serializer with constraint.
 func StringDefault(cstr ...string) StringDefaultSrlz { return StringDefaultSrlz{Constraint: cstr} }
 
-// StringDefaultSrlz intends to serialize/deserialize string value only.
+// StringDefaultSrlz intends to serialize/deserialize string value.
 type StringDefaultSrlz struct {
 	Constraint []string
 }
@@ -583,19 +654,19 @@ func (ser StringDefaultSrlz) Deserialize(rval reflect.Value, p []byte) error {
 	return DeserializeString(rval, p, ser.Constraint)
 }
 
-// ChecksumString returns string serializer with constraint.
-func ChecksumString(cstr ...string) ChecksumStringSrlz {
-	return ChecksumStringSrlz{Constraint: cstr}
+// CheckSum returns string serializer with constraint.
+func CheckSum(cstr ...string) CheckSumSrlz {
+	return CheckSumSrlz{Constraint: cstr}
 }
 
-// ChecksumStringSrlz intends to serialize/deserialize string value only.
-type ChecksumStringSrlz struct {
+// CheckSumSrlz intends to serialize/deserialize string value.
+type CheckSumSrlz struct {
 	Constraint []string
 	Fields     map[int][]byte
 }
 
 // Serialize serializes string value.
-func (ser ChecksumStringSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+func (ser CheckSumSrlz) Serialize(rval reflect.Value) ([]byte, error) {
 	val := rval.String()
 	if val != "" {
 		return SerializeString(rval.String(), ser.Constraint)
@@ -620,7 +691,7 @@ func (ser ChecksumStringSrlz) Serialize(rval reflect.Value) ([]byte, error) {
 }
 
 // Deserialize deserializes string value.
-func (ser ChecksumStringSrlz) Deserialize(rval reflect.Value, p []byte) error {
+func (ser CheckSumSrlz) Deserialize(rval reflect.Value, p []byte) error {
 	return DeserializeString(rval, p, ser.Constraint)
 }
 
@@ -664,7 +735,7 @@ func DeserializeString(rval reflect.Value, p []byte, cstr []string) error {
 // Unknown returns serializer for unknown.
 func Unknown(cstr ...[]byte) UnknownSrlz { return UnknownSrlz{} }
 
-// UnknownSrlz intends to serialize/deserialize byte slice value only.
+// UnknownSrlz intends to serialize/deserialize byte slice value.
 type UnknownSrlz struct{}
 
 // Serialize serializes unknown value.
@@ -682,12 +753,126 @@ func (ser UnknownSrlz) Deserialize(rval reflect.Value, p []byte) error {
 // UTC timestamp serializers/deserializers.
 //
 
-// UTCTimestampNanosecondTime returns string serializer.
-func UTCTimestampNanosecondTime(cstr ...string) UTCTimestampNanosecondTimeSrlz {
+// UTCTimestampSecondTime returns time serializer.
+func UTCTimestampSecondTime(cstr ...int64) UTCTimestampSecondTimeSrlz {
+	return UTCTimestampSecondTimeSrlz{}
+}
+
+// UTCTimestampSecondTimeSrlz intends to serialize/deserialize time value.
+type UTCTimestampSecondTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser UTCTimestampSecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := val.Format("20060102-15:04:05")
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser UTCTimestampSecondTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("20060102-15:04:05", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// UTCTimestampMillisecondTime returns time serializer.
+func UTCTimestampMillisecondTime(cstr ...int64) UTCTimestampMillisecondTimeSrlz {
+	return UTCTimestampMillisecondTimeSrlz{}
+}
+
+// UTCTimestampMillisecondTimeSrlz intends to serialize/deserialize time value.
+type UTCTimestampMillisecondTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser UTCTimestampMillisecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := fmt.Sprintf("%s.%03d", val.Format("20060102-15:04:05"), val.Nanosecond()/int(time.Millisecond))
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser UTCTimestampMillisecondTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("20060102-15:04:05.999", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// UTCTimestampMicrosecondTime returns time serializer.
+func UTCTimestampMicrosecondTime(cstr ...int64) UTCTimestampMicrosecondTimeSrlz {
+	return UTCTimestampMicrosecondTimeSrlz{}
+}
+
+// UTCTimestampMicrosecondTimeSrlz intends to serialize/deserialize time value.
+type UTCTimestampMicrosecondTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser UTCTimestampMicrosecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := fmt.Sprintf("%s.%06d", val.Format("20060102-15:04:05"), val.Nanosecond()/int(time.Microsecond))
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser UTCTimestampMicrosecondTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("20060102-15:04:05.999999", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// UTCTimestampNanosecondTime returns time serializer.
+func UTCTimestampNanosecondTime(cstr ...int64) UTCTimestampNanosecondTimeSrlz {
 	return UTCTimestampNanosecondTimeSrlz{}
 }
 
-// UTCTimestampNanosecondTimeSrlz intends to serialize/deserialize time value only.
+// UTCTimestampNanosecondTimeSrlz intends to serialize/deserialize time value.
 type UTCTimestampNanosecondTimeSrlz struct{}
 
 // Serialize serializes time value.
@@ -720,16 +905,16 @@ func (ser UTCTimestampNanosecondTimeSrlz) Deserialize(rval reflect.Value, p []by
 	return nil
 }
 
-// UTCTimestampMicrosecondTime returns string serializer.
-func UTCTimestampMicrosecondTime(cstr ...string) UTCTimestampMicrosecondTimeSrlz {
-	return UTCTimestampMicrosecondTimeSrlz{}
+// MonthYearTime returns time serializer.
+func MonthYearTime(cstr ...int64) MonthYearTimeSrlz {
+	return MonthYearTimeSrlz{}
 }
 
-// UTCTimestampMicrosecondTimeSrlz intends to serialize/deserialize time value only.
-type UTCTimestampMicrosecondTimeSrlz struct{}
+// MonthYearTimeSrlz intends to serialize/deserialize time value.
+type MonthYearTimeSrlz struct{}
 
 // Serialize serializes time value.
-func (ser UTCTimestampMicrosecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+func (ser MonthYearTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
 	v := rval.Interface()
 
 	val, ok := v.(time.Time)
@@ -742,14 +927,204 @@ func (ser UTCTimestampMicrosecondTimeSrlz) Serialize(rval reflect.Value) ([]byte
 		return nil, nil
 	}
 
-	s := fmt.Sprintf("%s.%06d", val.Format("20060102-15:04:05"), val.Nanosecond())
+	s := val.Format("200601")
 
 	return []byte(s), nil
 }
 
 // Deserialize deserializes time value.
-func (ser UTCTimestampMicrosecondTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
-	val, err := time.Parse("20060102-15:04:05.999999", string(p))
+func (ser MonthYearTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("200601", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// UTCTimeOnlyMillisecondTime returns time serializer.
+func UTCTimeOnlyMillisecondTime(cstr ...int64) UTCTimeOnlyMillisecondTimeSrlz {
+	return UTCTimeOnlyMillisecondTimeSrlz{}
+}
+
+// UTCTimeOnlyMillisecondTimeSrlz intends to serialize/deserialize time value.
+type UTCTimeOnlyMillisecondTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser UTCTimeOnlyMillisecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := val.Format("15:04:05.999")
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser UTCTimeOnlyMillisecondTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("15:04:05.999", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// UTCDateOnlyTime returns time serializer.
+func UTCDateOnlyTime(cstr ...int64) UTCDateOnlyTimeSrlz {
+	return UTCDateOnlyTimeSrlz{}
+}
+
+// UTCDateOnlyTimeSrlz intends to serialize/deserialize time value.
+type UTCDateOnlyTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser UTCDateOnlyTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := val.Format("20060102")
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser UTCDateOnlyTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("20060102", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// LocalMktDateTime returns time serializer.
+func LocalMktDateTime(cstr ...int64) LocalMktDateTimeSrlz {
+	return LocalMktDateTimeSrlz{}
+}
+
+// LocalMktDateTimeSrlz intends to serialize/deserialize time value.
+type LocalMktDateTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser LocalMktDateTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := val.Format("20060102")
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser LocalMktDateTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("20060102", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// TZTimestampMillisecondTime returns time serializer.
+func TZTimestampMillisecondTime(cstr ...int64) TZTimestampMillisecondTimeSrlz {
+	return TZTimestampMillisecondTimeSrlz{}
+}
+
+// TZTimestampMillisecondTimeSrlz intends to serialize/deserialize time value.
+type TZTimestampMillisecondTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser TZTimestampMillisecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := fmt.Sprintf("%s.%03d", val.Format("20060102-15:04:05"), val.Nanosecond()/int(time.Millisecond))
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser TZTimestampMillisecondTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("20060102-15:04:05.999", string(p))
+	if err != nil {
+		return fmt.Errorf("parse time value %q: %v", p, err)
+	}
+
+	rval.Set(reflect.ValueOf(val))
+	return nil
+}
+
+// TZTime returns time serializer.
+func TZTime(cstr ...int64) TZTimeSrlz {
+	return TZTimeSrlz{}
+}
+
+// TZTimeSrlz intends to serialize/deserialize time value.
+type TZTimeSrlz struct{}
+
+// Serialize serializes time value.
+func (ser TZTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	v := rval.Interface()
+
+	val, ok := v.(time.Time)
+	if !ok {
+		err := errors.New("unexpected struct field type, expected time")
+		return nil, err
+	}
+
+	if val.IsZero() {
+		return nil, nil
+	}
+
+	s := val.Format("15:04:05.999")
+
+	return []byte(s), nil
+}
+
+// Deserialize deserializes time value.
+func (ser TZTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	val, err := time.Parse("15:04:05.999", string(p))
 	if err != nil {
 		return fmt.Errorf("parse time value %q: %v", p, err)
 	}

@@ -16,8 +16,8 @@ import (
 type Format struct {
 	Fields      map[int]Codec
 	BodyLength9 BodyLengthFld
-	CheckSum10  ChecksumStringFld
-	Unknown     UnknownFld
+	CheckSum10  CheckSumFld
+	Unknown0    UnknownFld
 	Sort        []int
 }
 
@@ -141,7 +141,7 @@ var TagText = map[int]string{
 	SessionStatus1409:      "SessionStatus",
 	CancelOnDisconnect6867: "CancelOnDisconnect",
 	LanguageID6936:         "LanguageID",
-	CheckSum10:             "Checksum",
+	CheckSum10:             "CheckSum",
 }
 
 // Message types.

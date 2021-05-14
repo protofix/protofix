@@ -18,8 +18,22 @@ import (
 	"github.com/protofix/protofix/specfix"
 )
 
-var specs = []genfix.Package{
-	genfix.Package{Name: "moex44", Format: "FIX.4.4", Info: "MOEX.4.4 (FIX.4.4)", Spec: specfix.MOEX44},
+var specs = []spec{
+	spec{pkg: genfix.Package{Name: "fix40", Format: "FIX.4.0", Info: "FIX.4.0", Spec: specfix.FIX40}, opts: genfix.FIX40()},
+	spec{pkg: genfix.Package{Name: "fix41", Format: "FIX.4.1", Info: "FIX.4.1", Spec: specfix.FIX41}, opts: genfix.FIX41()},
+	spec{pkg: genfix.Package{Name: "fix42", Format: "FIX.4.2", Info: "FIX.4.2", Spec: specfix.FIX42}, opts: genfix.FIX42()},
+	spec{pkg: genfix.Package{Name: "fix43", Format: "FIX.4.3", Info: "FIX.4.3", Spec: specfix.FIX43}, opts: genfix.FIX43()},
+	spec{pkg: genfix.Package{Name: "fix44", Format: "FIX.4.4", Info: "FIX.4.4", Spec: specfix.FIX44}, opts: genfix.FIX44()},
+	spec{pkg: genfix.Package{Name: "fix50", Format: "FIX.5.0", Info: "FIX.5.0", Spec: specfix.FIX50}, opts: genfix.FIX50()},
+	spec{pkg: genfix.Package{Name: "fix50sp1", Format: "FIX.5.0", Info: "FIX.5.0 servicepack 1", Spec: specfix.FIX50SP1}, opts: genfix.FIX50SP1()},
+	spec{pkg: genfix.Package{Name: "fix50sp2", Format: "FIX.5.0", Info: "FIX.5.0 servicepack 2", Spec: specfix.FIX50SP2}, opts: genfix.FIX50SP2()},
+	spec{pkg: genfix.Package{Name: "fixt11", Format: "FIXT.1.1", Info: "FIXT.1.1 (transport) ", Spec: specfix.FIXT11}, opts: genfix.FIXT11()},
+	spec{pkg: genfix.Package{Name: "moex44", Format: "FIX.4.4", Info: "MOEX.4.4 (FIX.4.4)", Spec: specfix.MOEX44}, opts: genfix.MOEX44()},
+}
+
+type spec struct {
+	pkg  genfix.Package
+	opts []genfix.Option
 }
 
 //go:embed test.xml
@@ -41,13 +55,17 @@ func main() {
 
 	pth := path.Join(dirs[:len(dirs)-1]...)
 
-	err = genfix.Generate(pth, specs)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "\nGenerate FIX format by specification: %s\n", err)
-		os.Exit(1)
+	// Generate specs.
+	for _, s := range specs {
+		err = genfix.Generate(pth, s.pkg, s.opts...)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "\nGenerate FIX format by specification: %s\n", err)
+			os.Exit(1)
+		}
 	}
 
-	err = genfix.Generate(path.Join(pth, "genfix/internal"), []genfix.Package{testSpec})
+	// Generate test spec.
+	err = genfix.Generate(path.Join(pth, "genfix/internal"), testSpec, genfix.FIX44()...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\nGenerate test FIX format by test specification: %s\n", err)
 		os.Exit(1)

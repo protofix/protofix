@@ -124,7 +124,7 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 			err = fmt.Errorf("missing codec of the field tag %d %q", scan.Tag, f0.TagText[scan.Tag])
 			warns = append(warns, err)
 
-			codec = marsh.Format.Unknown
+			codec = marsh.Format.Unknown0
 		}
 
 		recievedGap := fmt.Sprintf("%d=\x01", scan.Tag)

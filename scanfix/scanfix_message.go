@@ -16,7 +16,7 @@ type Message struct {
 	BeginString string // BeginString contains the FIX version for the field tag 8.
 	BodyLength  int    // BodyLength of the last successfully tokenized FIX message <https://en.wikipedia.org/wiki/Financial_Information_eXchange#Body_length>.
 	MsgType     []byte // MsgType is a message type of the last successfully tokenized FIX message <https://en.wikipedia.org/wiki/Financial_Information_eXchange#FIX_tagvalue_message_format>.
-	Checksum    []byte // Checksum of the last successfully tokenized FIX message (checksum validation is not perform) <https://en.wikipedia.org/wiki/Financial_Information_eXchange#Trailer:_Checksum>.
+	CheckSum    []byte // CheckSum of the last successfully tokenized FIX message (checksum validation is not perform) <https://en.wikipedia.org/wiki/Financial_Information_eXchange#Trailer:_Checksum>.
 	length      int    // length is a body length of a FIX message being tokenizing.
 }
 
@@ -33,7 +33,7 @@ func (scan *Message) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte,
 
 	if atEOF && len(data) > 0 {
 		scan.MsgType = nil
-		scan.Checksum = nil
+		scan.CheckSum = nil
 		scan.BodyLength = 0
 		scan.length = 0
 		return 0, [][]byte{data}, len(data), nil, nil
@@ -119,7 +119,7 @@ func (scan *Message) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte,
 
 	scan.BodyLength = scan.length
 	scan.MsgType = data[tag35+3 : soh35]
-	scan.Checksum = data[tag10+3 : soh10]
+	scan.CheckSum = data[tag10+3 : soh10]
 	scan.length = 0
 
 	return 0, gap, tag8 + len(token), token, nil
