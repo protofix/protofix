@@ -14,7 +14,7 @@ its incomplete and extremely slow and allocates a lots of memory)
 
 ## Install
 
-    go get github.com/protofix/protofix@v0.0.53
+    go get github.com/protofix/protofix@v0.0.54
 
 ## Usage
 
@@ -55,6 +55,8 @@ func main() {
         fmt.Printf("unexpected unmarshal error: %s", err)
     }
 
+	fmt.Printf("%+v\n", logon)
+
     output, _, _, err := fix44logon.FIX44LogonMarshaler.Marshal(&logon)
     if err != nil {
         fmt.Printf("unexpected marshal error: %s", err)
@@ -74,6 +76,7 @@ func main() {
 Output:
 
 ```
+{BeginString8:FIX.4.4 BodyLength9:102 MsgType35:A SenderCompID49:BuySide TargetCompID56:SellSide MsgSeqNum34:1 SendingTime52:2019-06-05 11:40:30.392 +0000 UTC EncryptMethod98:0 HeartBtInt108:30000000000 ResetSeqNumFlag141:true Username553:Username Password554:Password CheckSum10:104}
 Message "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|" are equal to "8=FIX.4.4|9=102|35=A|49=BuySide|56=SellSide|34=1|52=20190605-11:40:30.392|98=0|108=30|141=Y|553=Username|554=Password|10=104|".
 ```
 

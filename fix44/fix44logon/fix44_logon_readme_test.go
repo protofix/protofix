@@ -44,6 +44,8 @@ func TestFIX44LogonUnmarshalMarshal(t *testing.T) {
 		t.Errorf("unexpected marshal error: %s", err)
 	}
 
+	t.Logf("%+v\n", logon)
+
 	input = bytes.ReplaceAll(input, []byte{0x01}, []byte{'|'})
 	output = bytes.ReplaceAll(output, []byte{0x01}, []byte{'|'})
 
