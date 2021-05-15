@@ -14,7 +14,7 @@ its incomplete and extremely slow and allocates a lots of memory)
 
 ## Install
 
-    go get github.com/protofix/protofix@v0.0.52
+    go get github.com/protofix/protofix@v0.0.53
 
 ## Usage
 
@@ -68,6 +68,7 @@ func main() {
     } else {
         fmt.Printf("Message %q are not equal to %q!\n", input, output)
     }
+}
 ```
 
 Output:
