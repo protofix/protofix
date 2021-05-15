@@ -14,7 +14,7 @@ its incomplete and extremely slow and allocates a lots of memory)
 
 ## Install
 
-    go get github.com/protofix/protofix@v0.0.54
+    go get github.com/protofix/protofix@v0.0.55
 
 ## Usage
 
@@ -50,17 +50,11 @@ func main() {
 
     logon := Logon{}
 
-    _, _, err := fix44logon.FIX44LogonUnmarshaler.Unmarshal(input, &logon)
-    if err != nil {
-        fmt.Printf("unexpected unmarshal error: %s", err)
-    }
+    _, _, _ = fix44logon.FIX44LogonUnmarshaler.Unmarshal(input, &logon)
 
 	fmt.Printf("%+v\n", logon)
 
-    output, _, _, err := fix44logon.FIX44LogonMarshaler.Marshal(&logon)
-    if err != nil {
-        fmt.Printf("unexpected marshal error: %s", err)
-    }
+    output, _, _, _ := fix44logon.FIX44LogonMarshaler.Marshal(&logon)
 
     input = bytes.ReplaceAll(input, []byte{0x01}, []byte{'|'})
     output = bytes.ReplaceAll(output, []byte{0x01}, []byte{'|'})

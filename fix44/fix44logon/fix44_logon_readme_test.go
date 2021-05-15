@@ -34,15 +34,9 @@ func TestFIX44LogonUnmarshalMarshal(t *testing.T) {
 
 	logon := Logon{}
 
-	_, _, err := fix44logon.FIX44LogonUnmarshaler.Unmarshal(input, &logon)
-	if err != nil {
-		t.Errorf("unexpected unmarshal error: %s", err)
-	}
+	_, _, _ = fix44logon.FIX44LogonUnmarshaler.Unmarshal(input, &logon)
 
-	output, _, _, err := fix44logon.FIX44LogonMarshaler.Marshal(&logon)
-	if err != nil {
-		t.Errorf("unexpected marshal error: %s", err)
-	}
+	output, _, _, _ := fix44logon.FIX44LogonMarshaler.Marshal(&logon)
 
 	t.Logf("%+v\n", logon)
 
