@@ -31,25 +31,6 @@ var UnmarshalTestCases = []struct {
 }{
 	{
 		line:        line(),
-		name:        "readme example",
-		unmarshaler: moex44logon.MOEX44LogonUnmarshaler,
-		input:       "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
-		expected: moex44Logon{
-			BeginString8:    "FIX.4.4",
-			BodyLength9:     103,
-			MsgType35:       "A",
-			SenderCompID49:  "Foo",
-			TargetCompID56:  "Bar",
-			MsgSeqNum34:     1,
-			SendingTime52:   time.Date(2021, time.March, 12, 12, 35, 12, 0, time.UTC),
-			EncryptMethod98: 0,
-			HeartBtInt108:   42 * time.Second,
-			Password554:     "87654321",
-			CheckSum10:      "060",
-		},
-	},
-	{
-		line:        line(),
 		name:        "many fields",
 		unmarshaler: moex44logon.MOEX44LogonUnmarshaler,
 		input:       "8=FIX.4.4|9=162|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-15:25:21.000000123|98=0|108=42|122=20210312-12:35:12.000000000|141=Y|554=87654321|925=87654321|1409=3|6867=A|6936=R|10=166|",
@@ -253,22 +234,6 @@ var MarshalTestCases = []struct {
 	expectedWarns   []error
 	expectedError   error
 }{
-	{
-		line:      line(),
-		name:      "readme example",
-		marshaler: moex44logon.MOEX44LogonMarshaler,
-		input: moex44Logon{
-			MsgType35:       "A",
-			SenderCompID49:  "Foo",
-			TargetCompID56:  "Bar",
-			MsgSeqNum34:     1,
-			SendingTime52:   time.Date(2021, time.March, 12, 12, 35, 12, 0, time.UTC),
-			EncryptMethod98: 0,
-			HeartBtInt108:   42 * time.Second,
-			Password554:     "87654321",
-		},
-		expected: "8=FIX.4.4|9=103|35=A|49=Foo|56=Bar|34=1|43=N|97=N|52=20210312-12:35:12.000000000|98=0|108=42|141=N|554=87654321|1409=0|10=060|",
-	},
 	{
 		line:      line(),
 		name:      "many fields",
