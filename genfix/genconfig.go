@@ -7,7 +7,6 @@ package genfix
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	f0 "github.com/protofix/protofix/codecfix"
@@ -101,7 +100,7 @@ func FIX40() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -242,7 +241,7 @@ func FIX41() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -383,7 +382,7 @@ func FIX42() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -524,7 +523,7 @@ func FIX43() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -665,7 +664,7 @@ func FIX44() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -806,7 +805,7 @@ func FIX50() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -947,7 +946,7 @@ func FIX50SP1() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -1088,7 +1087,7 @@ func FIX50SP2() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -1229,7 +1228,7 @@ func FIXT11() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{
@@ -1378,7 +1377,7 @@ func MOEX44() []Option {
 		EnumFormatTag: map[int]EnumFormatTag{
 			f0.HeartBtInt108: EnumFormatTag{Func: func(s string) (string, error) {
 				t, err := time.ParseDuration(s + "s")
-				return strconv.Itoa(int(t.Nanoseconds())), err
+				return fmt.Sprintf("%d*time.Second", int(t.Seconds())), err
 			}},
 		},
 		Length: map[string]Length{

@@ -729,37 +729,18 @@ func DeserializeString(rval reflect.Value, p []byte, cstr []string) error {
 }
 
 //
-// Unknown serializers/deserializers.
-//
-
-// Unknown returns serializer for unknown.
-func Unknown(cstr ...[]byte) UnknownSrlz { return UnknownSrlz{} }
-
-// UnknownSrlz intends to serialize/deserialize byte slice value.
-type UnknownSrlz struct{}
-
-// Serialize serializes unknown value.
-func (ser UnknownSrlz) Serialize(rval reflect.Value) ([]byte, error) {
-	val := rval.Interface()
-	return []byte(fmt.Sprint(val)), nil
-}
-
-// Deserialize deserializes unknown value.
-func (ser UnknownSrlz) Deserialize(rval reflect.Value, p []byte) error {
-	return errors.New("cannot deserialize unknown value")
-}
-
-//
 // UTC timestamp serializers/deserializers.
 //
 
 // UTCTimestampSecondTime returns time serializer.
-func UTCTimestampSecondTime(cstr ...int64) UTCTimestampSecondTimeSrlz {
-	return UTCTimestampSecondTimeSrlz{}
+func UTCTimestampSecondTime(cstr ...time.Time) UTCTimestampSecondTimeSrlz {
+	return UTCTimestampSecondTimeSrlz{Constraint: cstr}
 }
 
 // UTCTimestampSecondTimeSrlz intends to serialize/deserialize time value.
-type UTCTimestampSecondTimeSrlz struct{}
+type UTCTimestampSecondTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser UTCTimestampSecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -792,12 +773,14 @@ func (ser UTCTimestampSecondTimeSrlz) Deserialize(rval reflect.Value, p []byte) 
 }
 
 // UTCTimestampMillisecondTime returns time serializer.
-func UTCTimestampMillisecondTime(cstr ...int64) UTCTimestampMillisecondTimeSrlz {
-	return UTCTimestampMillisecondTimeSrlz{}
+func UTCTimestampMillisecondTime(cstr ...time.Time) UTCTimestampMillisecondTimeSrlz {
+	return UTCTimestampMillisecondTimeSrlz{Constraint: cstr}
 }
 
 // UTCTimestampMillisecondTimeSrlz intends to serialize/deserialize time value.
-type UTCTimestampMillisecondTimeSrlz struct{}
+type UTCTimestampMillisecondTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser UTCTimestampMillisecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -830,12 +813,14 @@ func (ser UTCTimestampMillisecondTimeSrlz) Deserialize(rval reflect.Value, p []b
 }
 
 // UTCTimestampMicrosecondTime returns time serializer.
-func UTCTimestampMicrosecondTime(cstr ...int64) UTCTimestampMicrosecondTimeSrlz {
-	return UTCTimestampMicrosecondTimeSrlz{}
+func UTCTimestampMicrosecondTime(cstr ...time.Time) UTCTimestampMicrosecondTimeSrlz {
+	return UTCTimestampMicrosecondTimeSrlz{Constraint: cstr}
 }
 
 // UTCTimestampMicrosecondTimeSrlz intends to serialize/deserialize time value.
-type UTCTimestampMicrosecondTimeSrlz struct{}
+type UTCTimestampMicrosecondTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser UTCTimestampMicrosecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -868,12 +853,14 @@ func (ser UTCTimestampMicrosecondTimeSrlz) Deserialize(rval reflect.Value, p []b
 }
 
 // UTCTimestampNanosecondTime returns time serializer.
-func UTCTimestampNanosecondTime(cstr ...int64) UTCTimestampNanosecondTimeSrlz {
-	return UTCTimestampNanosecondTimeSrlz{}
+func UTCTimestampNanosecondTime(cstr ...time.Time) UTCTimestampNanosecondTimeSrlz {
+	return UTCTimestampNanosecondTimeSrlz{Constraint: cstr}
 }
 
 // UTCTimestampNanosecondTimeSrlz intends to serialize/deserialize time value.
-type UTCTimestampNanosecondTimeSrlz struct{}
+type UTCTimestampNanosecondTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser UTCTimestampNanosecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -906,12 +893,14 @@ func (ser UTCTimestampNanosecondTimeSrlz) Deserialize(rval reflect.Value, p []by
 }
 
 // MonthYearTime returns time serializer.
-func MonthYearTime(cstr ...int64) MonthYearTimeSrlz {
-	return MonthYearTimeSrlz{}
+func MonthYearTime(cstr ...time.Time) MonthYearTimeSrlz {
+	return MonthYearTimeSrlz{Constraint: cstr}
 }
 
 // MonthYearTimeSrlz intends to serialize/deserialize time value.
-type MonthYearTimeSrlz struct{}
+type MonthYearTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser MonthYearTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -944,12 +933,14 @@ func (ser MonthYearTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
 }
 
 // UTCTimeOnlyMillisecondTime returns time serializer.
-func UTCTimeOnlyMillisecondTime(cstr ...int64) UTCTimeOnlyMillisecondTimeSrlz {
-	return UTCTimeOnlyMillisecondTimeSrlz{}
+func UTCTimeOnlyMillisecondTime(cstr ...time.Time) UTCTimeOnlyMillisecondTimeSrlz {
+	return UTCTimeOnlyMillisecondTimeSrlz{Constraint: cstr}
 }
 
 // UTCTimeOnlyMillisecondTimeSrlz intends to serialize/deserialize time value.
-type UTCTimeOnlyMillisecondTimeSrlz struct{}
+type UTCTimeOnlyMillisecondTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser UTCTimeOnlyMillisecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -982,12 +973,14 @@ func (ser UTCTimeOnlyMillisecondTimeSrlz) Deserialize(rval reflect.Value, p []by
 }
 
 // UTCDateOnlyTime returns time serializer.
-func UTCDateOnlyTime(cstr ...int64) UTCDateOnlyTimeSrlz {
-	return UTCDateOnlyTimeSrlz{}
+func UTCDateOnlyTime(cstr ...time.Time) UTCDateOnlyTimeSrlz {
+	return UTCDateOnlyTimeSrlz{Constraint: cstr}
 }
 
 // UTCDateOnlyTimeSrlz intends to serialize/deserialize time value.
-type UTCDateOnlyTimeSrlz struct{}
+type UTCDateOnlyTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser UTCDateOnlyTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -1020,12 +1013,14 @@ func (ser UTCDateOnlyTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
 }
 
 // LocalMktDateTime returns time serializer.
-func LocalMktDateTime(cstr ...int64) LocalMktDateTimeSrlz {
-	return LocalMktDateTimeSrlz{}
+func LocalMktDateTime(cstr ...time.Time) LocalMktDateTimeSrlz {
+	return LocalMktDateTimeSrlz{Constraint: cstr}
 }
 
 // LocalMktDateTimeSrlz intends to serialize/deserialize time value.
-type LocalMktDateTimeSrlz struct{}
+type LocalMktDateTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser LocalMktDateTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -1058,12 +1053,14 @@ func (ser LocalMktDateTimeSrlz) Deserialize(rval reflect.Value, p []byte) error 
 }
 
 // TZTimestampMillisecondTime returns time serializer.
-func TZTimestampMillisecondTime(cstr ...int64) TZTimestampMillisecondTimeSrlz {
-	return TZTimestampMillisecondTimeSrlz{}
+func TZTimestampMillisecondTime(cstr ...time.Time) TZTimestampMillisecondTimeSrlz {
+	return TZTimestampMillisecondTimeSrlz{Constraint: cstr}
 }
 
 // TZTimestampMillisecondTimeSrlz intends to serialize/deserialize time value.
-type TZTimestampMillisecondTimeSrlz struct{}
+type TZTimestampMillisecondTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser TZTimestampMillisecondTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -1096,12 +1093,14 @@ func (ser TZTimestampMillisecondTimeSrlz) Deserialize(rval reflect.Value, p []by
 }
 
 // TZTime returns time serializer.
-func TZTime(cstr ...int64) TZTimeSrlz {
-	return TZTimeSrlz{}
+func TZTime(cstr ...time.Time) TZTimeSrlz {
+	return TZTimeSrlz{Constraint: cstr}
 }
 
 // TZTimeSrlz intends to serialize/deserialize time value.
-type TZTimeSrlz struct{}
+type TZTimeSrlz struct {
+	Constraint []time.Time
+}
 
 // Serialize serializes time value.
 func (ser TZTimeSrlz) Serialize(rval reflect.Value) ([]byte, error) {
@@ -1131,4 +1130,25 @@ func (ser TZTimeSrlz) Deserialize(rval reflect.Value, p []byte) error {
 
 	rval.Set(reflect.ValueOf(val))
 	return nil
+}
+
+//
+// Unknown serializers/deserializers.
+//
+
+// Unknown returns serializer for unknown.
+func Unknown(cstr ...[]byte) UnknownSrlz { return UnknownSrlz{} }
+
+// UnknownSrlz intends to serialize/deserialize byte slice value.
+type UnknownSrlz struct{}
+
+// Serialize serializes unknown value.
+func (ser UnknownSrlz) Serialize(rval reflect.Value) ([]byte, error) {
+	val := rval.Interface()
+	return []byte(fmt.Sprint(val)), nil
+}
+
+// Deserialize deserializes unknown value.
+func (ser UnknownSrlz) Deserialize(rval reflect.Value, p []byte) error {
+	return errors.New("cannot deserialize unknown value")
 }

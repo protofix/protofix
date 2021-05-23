@@ -7,6 +7,8 @@
 package testspeclogon
 
 import (
+	"time"
+
 	f0 "github.com/protofix/protofix/codecfix"
 	"github.com/protofix/protofix/marshfix"
 )
@@ -33,7 +35,7 @@ var TESTSPECLogon = f0.Format{
 		UnderlyingStipType888:  f0.Fld{Opt, f0.ASCII, f0.String(), f0.Var{1, 65536}},
 		HopCompID628:           f0.Fld{Opt, f0.ASCII, f0.String(), f0.Var{1, 65536}},
 		EncryptMethod98:        f0.Fld{Req, f0.ASCII, f0.IntDefault(0 /* NONEOTHER */), f0.Con{1}},
-		HeartBtInt108:          f0.Fld{Req, f0.ASCII, f0.SecondsDuration(1000000000, 2000000000, 3000000000, 4000000000, 5000000000, 6000000000, 7000000000, 8000000000, 9000000000, 10000000000, 11000000000, 12000000000, 13000000000, 14000000000, 15000000000, 16000000000, 17000000000, 18000000000, 19000000000, 20000000000, 21000000000, 22000000000, 23000000000, 24000000000, 25000000000, 26000000000, 27000000000, 28000000000, 29000000000, 30000000000, 31000000000, 32000000000, 33000000000, 34000000000, 35000000000, 36000000000, 37000000000, 38000000000, 39000000000, 40000000000, 41000000000, 42000000000, 43000000000, 44000000000, 45000000000, 46000000000, 47000000000, 48000000000, 49000000000, 50000000000, 51000000000, 52000000000, 53000000000, 54000000000, 55000000000, 56000000000, 57000000000, 58000000000, 59000000000, 60000000000), f0.Var{1, 18}},
+		HeartBtInt108:          f0.Fld{Req, f0.ASCII, f0.SecondsDuration(1*time.Second, 2*time.Second, 3*time.Second, 4*time.Second, 5*time.Second, 6*time.Second, 7*time.Second, 8*time.Second, 9*time.Second, 10*time.Second, 11*time.Second, 12*time.Second, 13*time.Second, 14*time.Second, 15*time.Second, 16*time.Second, 17*time.Second, 18*time.Second, 19*time.Second, 20*time.Second, 21*time.Second, 22*time.Second, 23*time.Second, 24*time.Second, 25*time.Second, 26*time.Second, 27*time.Second, 28*time.Second, 29*time.Second, 30*time.Second, 31*time.Second, 32*time.Second, 33*time.Second, 34*time.Second, 35*time.Second, 36*time.Second, 37*time.Second, 38*time.Second, 39*time.Second, 40*time.Second, 41*time.Second, 42*time.Second, 43*time.Second, 44*time.Second, 45*time.Second, 46*time.Second, 47*time.Second, 48*time.Second, 49*time.Second, 50*time.Second, 51*time.Second, 52*time.Second, 53*time.Second, 54*time.Second, 55*time.Second, 56*time.Second, 57*time.Second, 58*time.Second, 59*time.Second, 60*time.Second), f0.Var{1, 18}},
 		ResetSeqNumFlag141:     f0.Fld{Opt, f0.ASCII, f0.BoolDefault(false /* NO */, true /* YES */), f0.Con{1}},
 		Password554:            f0.Fld{Req, f0.ASCII, f0.String(), f0.Var{1, 65536}},
 		NewPassword925:         f0.Fld{Opt, f0.ASCII, f0.String(), f0.Var{1, 65536}},

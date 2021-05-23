@@ -149,7 +149,10 @@
    <value enum='59' />
    <value enum='60' />
   </field>
-  <field number='122' name='OrigSendingTime' type='UTCTIMESTAMP' />
+  <field number='122' name='OrigSendingTime' type='UTCTIMESTAMP'>
+   <!-- <value enum='19700101-00:00:00.000' /> -->
+   <!-- <value enum='20060102-15:04:05.999' /> -->
+  </field>
   <field number='141' name='ResetSeqNumFlag' type='BOOLEAN'>
    <value enum='N' description='NO' />
    <value enum='Y' description='YES' />
