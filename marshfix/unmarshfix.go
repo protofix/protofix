@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/danil/protoscan"
 	f0 "github.com/protofix/protofix/codecfix"
 	"github.com/protofix/protofix/scanfix"
+	"github.com/protoscan/protoscan"
 )
 
 type Unmarshal struct {

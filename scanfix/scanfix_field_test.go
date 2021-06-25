@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/danil/protoscan"
 	f0 "github.com/protofix/protofix/codecfix"
 	"github.com/protofix/protofix/scanfix"
+	"github.com/protoscan/protoscan"
 )
 
 var ScanFieldTestCases = []struct {
