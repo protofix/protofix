@@ -53,10 +53,10 @@ func TestScanField(t *testing.T) {
 
 			for scan.Scan() {
 				tags = append(tags, strconv.Itoa(split.Tag))
-				vals = append(vals, string(scan.Tokens[:scan.Indexes[0]]))
+				vals = append(vals, string(scan.Token))
 
 				expectedGap := fmt.Sprintf("%d=\x01", split.Tag)
-				recievedGap := string(scan.Gaps)
+				recievedGap := string(split.Gaps)
 				if recievedGap != expectedGap {
 					t.Fatalf("unexpected scan gap, expected, %q, recieved: %q %s", expectedGap, recievedGap, linkToExample)
 				}
@@ -67,7 +67,7 @@ func TestScanField(t *testing.T) {
 				t.Fatalf("unexpected scan error: %v %s", err, linkToExample)
 			}
 
-			gap := scan.Gaps
+			gap := split.Gaps
 			if len(gap) != 0 {
 				t.Fatalf("unexpected scan gap: %v %s", gap, linkToExample)
 			}

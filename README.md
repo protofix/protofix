@@ -14,7 +14,7 @@ its incomplete and extremely slow and allocates a lots of memory)
 
 ## Install
 
-    go get github.com/protofix/protofix@v0.0.59
+    go get github.com/protofix/protofix@v0.0.60
 
 ## Usage
 
@@ -87,5 +87,5 @@ goarch: amd64
 pkg: github.com/protofix/protofix/fix44/fix44logon
 cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
 BenchmarkLogonUnmarshalMarshal
-BenchmarkLogonUnmarshalMarshal-8   	   26809	     44069 ns/op	    5975 B/op	     253 allocs/op
+BenchmarkLogonUnmarshalMarshal-8   	   26072	     43186 ns/op	    5536 B/op	     223 allocs/op
 ```
