@@ -127,13 +127,8 @@ func TestScanMessage(t *testing.T) {
 			)
 
 			for scan.Scan() {
-				token := make([]byte, len(scan.Token()))
-				copy(token, scan.Token())
-				tokens = append(tokens, token...)
-
-				for _, g := range scan.Gap() {
-					gaps = append(gaps, string(g))
-				}
+				tokens = append(tokens, scan.Tokens[:scan.Indexes[0]]...)
+				gaps = append(gaps, string(scan.Gaps))
 
 				bodyLens = append(bodyLens, strconv.Itoa(split.BodyLength))
 
@@ -146,9 +141,7 @@ func TestScanMessage(t *testing.T) {
 				t.Errorf("unexpected scan error, expected: %s, received: %s %s", tc.expectedError, err, linkToExample)
 			}
 
-			for _, g := range scan.Gap() {
-				gaps = append(gaps, string(g))
-			}
+			gaps = append(gaps, string(scan.Gaps))
 
 			expectedTokens := strings.ReplaceAll(tc.expectedTokens, "|", "\x01")
 			if string(tokens) != expectedTokens {

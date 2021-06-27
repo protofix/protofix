@@ -88,7 +88,7 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 				unknown = map[int][]byte{}
 			}
 			// we cannot unmarshal without destination, so remember it ...
-			unknown[scan.Tag] = scanner.Token()
+			unknown[scan.Tag] = scanner.Tokens[:scanner.Indexes[0]]
 
 			err := fmt.Errorf("missing destination for the field tag %d %q", scan.Tag, f0.TagText[scan.Tag])
 			warns = append(warns, err)
@@ -117,9 +117,7 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 			if unknown == nil {
 				unknown = map[int][]byte{}
 			}
-			token := make([]byte, len(scanner.Token()))
-			copy(token, scanner.Token())
-			unknown[scan.Tag] = token
+			unknown[scan.Tag] = append([]byte{}, scanner.Tokens[:scanner.Indexes[0]]...)
 
 			err = fmt.Errorf("missing codec of the field tag %d %q", scan.Tag, f0.TagText[scan.Tag])
 			warns = append(warns, err)
@@ -128,13 +126,13 @@ func (marsh Unmarshal) unmarshal(p []byte, v interface{}) (map[int][]byte, []err
 		}
 
 		recievedGap := fmt.Sprintf("%d=\x01", scan.Tag)
-		expectedGap := string(bytes.Join(scanner.Gap(), []byte{}))
+		expectedGap := string(scanner.Gaps)
 		if recievedGap != expectedGap {
 			err := fmt.Errorf("unexpected scan gap, expected, %q, recieved: %q", expectedGap, recievedGap)
 			return unknown, warns, err
 		}
 
-		err := codec.Decode(val, scanner.Token())
+		err := codec.Decode(val, scanner.Tokens[:scanner.Indexes[0]])
 		if err != nil {
 			err = fmt.Errorf("decode field tag %d %q: %w", scan.Tag, f0.TagText[scan.Tag], err)
 			warns = append(warns, err)

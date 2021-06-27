@@ -13,35 +13,35 @@ import (
 
 // Field is a Protoscan splitter which splits field of the FIX message.
 type Field struct {
-	Format f0.Format
-	Tag    int // Tag is a unique number of the last successfully tokenized FIX field.
-	equal  int // equal is an index of a "=" character of a FIX field, equal is a tag/value separator.
+	Format   f0.Format
+	Tag      int // Tag is a unique number of the last successfully tokenized FIX field.
+	splitter int // splitter is an index of a "=" character of a FIX field, splitter is a tag/value separator.
 }
 
 // Split is a Protoscan splitter which splits field of the FIX message.
 // Returns hint is a number of bytes hinted to read
 // and returns advance is a needed number of bytes by which the carriage is to shift
-// and returns a token and an error if occurs.
+// and an error if occurs.
 // Each token is a value of the FIX message.
-func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, error) {
+func (scan *Field) Split(data []byte, tokens *[]byte, indexes *[]int, gaps *[]byte, atEOF bool) (int, int, error) {
 	// Read at least 2 bytes, for example: "8=".
 	if hint := 2 - len(data); hint > 0 {
-		return hint, nil, 0, nil, nil
+		return hint, 0, nil
 	}
 
-	if scan.equal == 0 {
-		// The equal character (=) is not at the tail, so reads one more byte.
+	if scan.splitter == 0 {
+		// The splitter character (=) is not at the tail, so reads one more byte.
 		if data[len(data)-1] != '=' {
-			return 1, nil, 0, nil, nil
+			return 1, 0, nil
 		}
 
-		scan.equal = len(data) - 1
-		s := string(data[:scan.equal])
+		scan.splitter = len(data) - 1
+		s := string(data[:scan.splitter])
 
 		i, err := strconv.Atoi(s)
 		if err != nil {
 			err = fmt.Errorf("parsing FIX tag: %q, substring: %q, error: %w", data[:len(data)-1], data, err)
-			return 0, nil, 0, nil, err
+			return 0, 0, err
 		}
 
 		scan.Tag = i
@@ -71,26 +71,33 @@ func (scan *Field) Split(data []byte, atEOF bool) (int, [][]byte, int, []byte, e
 		codec = scan.Format.Unknown0
 	}
 
-	l := len(data) - scan.equal - 2
+	l := len(data) - scan.splitter - 2
 	if l > codec.Sizer().Max() {
 		err := fmt.Errorf(
 			"unexpected value length %d of the tag %d %q, maximum value length %d, field length %d, field: %q",
 			l, scan.Tag, f0.TagText[scan.Tag], codec.Sizer().Max(), len(data), data,
 		)
-		return 0, nil, 0, nil, err
+		return 0, 0, err
 	}
 
-	if hint := codec.Sizer().Min() + scan.equal + 2 - len(data); hint > 0 {
-		return hint, nil, 0, nil, nil
+	if hint := codec.Sizer().Min() + scan.splitter + 2 - len(data); hint > 0 {
+		return hint, 0, nil
 	}
 
 	if data[len(data)-1] != 0x01 {
-		return 1, nil, 0, nil, nil
+		return 1, 0, nil
 	}
 
-	gap := [][]byte{data[:scan.equal+1], data[len(data)-1:]}
-	token := data[scan.equal+1 : len(data)-1]
-	scan.equal = 0
+	token := append([]byte{}, data[scan.splitter+1:len(data)-1]...)
 
-	return 0, gap, len(data), token, nil
+	gap := append([]byte{}, data[:scan.splitter+1]...)
+	gap = append(gap, data[len(data)-1:]...)
+
+	*tokens = append(*tokens, token...)
+	*indexes = append(*indexes, len(token))
+	*gaps = append(*gaps, gap...)
+
+	scan.splitter = 0
+
+	return 0, len(data), nil
 }

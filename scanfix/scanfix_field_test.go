@@ -49,14 +49,14 @@ func TestScanField(t *testing.T) {
 			}
 
 			var tags []string
-			var vars []string
+			var vals []string
 
 			for scan.Scan() {
 				tags = append(tags, strconv.Itoa(split.Tag))
-				vars = append(vars, string(scan.Token()))
+				vals = append(vals, string(scan.Tokens[:scan.Indexes[0]]))
 
 				expectedGap := fmt.Sprintf("%d=\x01", split.Tag)
-				recievedGap := string(bytes.Join(scan.Gap(), []byte{}))
+				recievedGap := string(scan.Gaps)
 				if recievedGap != expectedGap {
 					t.Fatalf("unexpected scan gap, expected, %q, recieved: %q %s", expectedGap, recievedGap, linkToExample)
 				}
@@ -67,8 +67,8 @@ func TestScanField(t *testing.T) {
 				t.Fatalf("unexpected scan error: %v %s", err, linkToExample)
 			}
 
-			gap := scan.Gap()
-			if gap != nil {
+			gap := scan.Gaps
+			if len(gap) != 0 {
 				t.Fatalf("unexpected scan gap: %v %s", gap, linkToExample)
 			}
 
@@ -76,8 +76,8 @@ func TestScanField(t *testing.T) {
 				t.Errorf("unexpected tag, expected: %#v, received: %#v %s", tc.expectedTags, tags, linkToExample)
 			}
 
-			if strings.Join(vars, "") != strings.Join(tc.expectedVals, "") {
-				t.Errorf("unexpected variables, expected: %q, received: %q %s", tc.expectedVals, vars, linkToExample)
+			if strings.Join(vals, "") != strings.Join(tc.expectedVals, "") {
+				t.Errorf("unexpected values, expected: %q, received: %q %s", tc.expectedVals, vals, linkToExample)
 			}
 		})
 	}
